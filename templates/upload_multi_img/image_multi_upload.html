@@ -1,0 +1,185 @@
+{% load static %}
+<div class="file-button" id="upload_image"
+     style="background-image:  url('{% static 'upload_multi_img/add.jpg' %}');background-repeat: no-repeat;background-size: 64px;background-position: center">
+    <input type="{{ widget.type }}" name="{{ widget.name }}"{% if widget.value != None %}
+           value="{{ widget.value|stringformat:'s' }}"{% endif %} onchange="uploadImage(this)"
+           id="id_imageUpload" accept="image/jpeg,image/jpg,image/png,image/gif" multiple>
+</div>
+
+<div class="selected-img">
+    <i title="删除图片" class="iconfont icon-delete" style="z-index: 999;background-color:rgba(255,255,255,.8);position: absolute;right: 3px;top: 3px;" onclick="delete_img(this)"></i>
+    <img style="width: 160px;height: 100px;border-radius: 10px;" alt="待选图片" src="">
+</div>
+
+<div id="outerdiv"
+     style="position:fixed;top:0;left:0;background:rgba(0,0,0,0.7);z-index:10000;width:100%;height:100%;display:none;">
+    <div id="innerdiv" style="position:absolute;">
+        <img id="bigimg" style="border:5px solid #fff;" src="" alt="大图"/>
+    </div>
+</div>
+<style type="text/css">
+    /*缩略图片样式*/
+    .selected-img {
+        width: 160px;
+        height: 100px;
+        position: relative;
+        display: inline-block;
+        overflow: hidden;
+        border: solid #b1c6c1 1px;
+        border-radius: 10px;
+        margin-right: 10px;
+    }
+  /*缩略图片聚焦样式*/
+    .selected-img:hover {
+        border: solid #25adc6 2px;
+    }
+/*上传图片按钮样式*/
+    .file-button {
+        width: 160px;
+        height: 100px;
+        position: relative;
+        display: inline-block;
+        overflow: hidden;
+        border: solid #b1c6c1 1px;
+        border-radius: 10px;
+        margin-right: 10px;
+    }
+/*上传图片按钮聚焦样式*/
+    .file-button:hover {
+        border: solid #25adc6 2px;
+    }
+
+    .file-button input {
+        position: absolute;
+        top: 0;
+        height: 100px;
+        opacity: 0;
+    }
+/*删除缩略图片icon聚焦样式*/
+    i:hover {
+        color: #0081C6;
+    }
+/*阿里云字体图标*/
+    @font-face {
+        font-family: 'iconfont';  /* project id 1361777 */
+        src: url('//at.alicdn.com/t/font_1361777_ufufbwqmfpa.eot');
+        src: url('//at.alicdn.com/t/font_1361777_ufufbwqmfpa.eot?#iefix') format('embedded-opentype'),
+        url('//at.alicdn.com/t/font_1361777_ufufbwqmfpa.woff2') format('woff2'),
+        url('//at.alicdn.com/t/font_1361777_ufufbwqmfpa.woff') format('woff'),
+        url('//at.alicdn.com/t/font_1361777_ufufbwqmfpa.ttf') format('truetype'),
+        url('//at.alicdn.com/t/font_1361777_ufufbwqmfpa.svg#iconfont') format('svg');
+    }
+
+    .iconfont {
+        font-family: "iconfont" !important;
+        font-size: 20px;
+        font-style: normal;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    .icon-delete:before {
+        content: "\e63c";
+    }
+</style>
+{#引入jQuery的CDN#}
+<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+<script type="text/javascript">
+    //必须加这个请求头，否则ajax请求被django屏蔽，这行代码不能放进function中声明，否则获取不到请求头
+    var image_list = [];
+    var csrftoken = $.cookie('csrftoken');
+    //删除选中的图片,不能使用click，因为动态添加的不能绑定click
+    function delete_img(e) {
+        image_list.splice($.inArray($(e).closest('.selected-img').children("img").attr("src"), image_list), 1);//移除缩略图
+        $("#images_list").val(image_list.join(','));
+        $(e).closest('.selected-img').remove();
+    }
+    function uploadImage(obj) {
+        var formData = new FormData();
+        var files = $("#id_imageUpload")[0].files;//获取模板定义的图片上传按钮的文件
+        //检查图片数目和图片类型，只允许上传jpg,png,gif格式
+        for (i = 0; i < files.length; i++) {
+            var ext = files[i].name.slice(files[i].name.lastIndexOf(".") + 1).toLowerCase();
+            if ("png" === ext || "jpg" === ext || "jpeg" === ext || "gif" === ext) {
+                formData.append(files[i].name, files[i]);
+            }
+        }
+
+        if (formData) {
+            //必须加上csrftoken ，否则验证不通过，ajax请求无效
+            $.ajax({
+                url: '{% url 'preprocess:upload_temp_images' %}',
+                dataType: 'json',// 返回值类型 一般设置为json
+                type: 'POST',
+                headers: {"X-CSRFToken": csrftoken},//django默认拒绝post请求，必须加 csrftoken，否则请求被屏蔽
+                processData: false,    // 告诉jQuery不要去处理发送的数据
+                contentType: false, //告诉jQuery不检查类型
+                data: formData,
+                async: false,//必须设置为同步模式，否则success方法没有返回值
+                success: function (data) {
+//console.log(data["image_list"])
+                    //动态添加HTML元素，显示上传的图片
+                    for (i = 0; i < data["image_list"].length; i++) {
+                        //console.log(data["image_list"][i])
+                        $("#upload_image").before("<div class=\"selected-img\">\n" +
+                            "    <i class=\"iconfont icon-delete\" style=\"z-index: 999;background-color:rgba(255,255,255,.8);position: absolute;right: 3px;top: 3px;\" title=\"删除图片\" οnclick=\"delete_img(this)\"></i>\n" +
+                            "    <img src=\"" + data["image_list"][i] + "\" alt=\"待选图片\" style=\"width: 160px;height: 100px;border-radius: 10px;\">\n" +
+                            "</div>");
+                    //保存返回的图片URL到列表中
+                        var index = $.inArray(data["image_list"][i], image_list);
+                        if (index < 0) {
+                            image_list.push(data["image_list"][i])
+                        }
+                    }
+                    var list = image_list.join(',');　　//list是以,分割的字符串
+                    $("#images_list").val(list);
+                },
+                error: function (error) {
+                    alert("服务器异常");
+                }
+            })
+        }
+        return false;
+    }
+</script>
+<script type="text/javascript">
+    //因为图片是动态添加的，所以不能使用选择器选择。
+    function show_big_img(obj) {
+        imgShow("#outerdiv", "#innerdiv", "#bigimg", obj);
+    }
+
+    function imgShow(outerdiv, innerdiv, bigimg, obj) {
+        var src = obj.src;//获取当前点击的pimg元素中的src属性
+        $(bigimg).attr("src", src);//设置#bigimg元素的src属性
+        console.log("￥￥￥￥", obj.height, obj.width);
+        var windowW = $(window).width();//获取当前窗口宽度
+        var windowH = $(window).height();//获取当前窗口高度
+        var realWidth = obj.naturalWidth;//获取图片真实宽度
+        var realHeight = obj.naturalHeight;//获取图片真实高度
+        var imgWidth, imgHeight;
+        var scale = 0.8;//缩放尺寸，当图片真实宽度和高度大于窗口宽度和高度时进行缩放
+
+        if (realHeight > windowH * scale) {//判断图片高度
+            imgHeight = windowH * scale;//如大于窗口高度，图片高度进行缩放
+            imgWidth = imgHeight / realHeight * realWidth;//等比例缩放宽度
+            if (imgWidth > windowW * scale) {//如宽度扔大于窗口宽度
+                imgWidth = windowW * scale;//再对宽度进行缩放
+            }
+        } else if (realWidth > windowW * scale) {//如图片高度合适，判断图片宽度
+            imgWidth = windowW * scale;//如大于窗口宽度，图片宽度进行缩放
+            imgHeight = imgWidth / realWidth * realHeight;//等比例缩放高度
+        } else {//如果图片真实高度和宽度都符合要求，高宽不变
+            imgWidth = realWidth;
+            imgHeight = realHeight;
+        }
+        $(bigimg).css("width", imgWidth);//以最终的宽度对图片缩放
+        var w = (windowW - imgWidth) / 2;//计算图片与窗口左边距
+        var h = (windowH - imgHeight) / 2;//计算图片与窗口上边距
+        $(innerdiv).css({"top": h, "left": w});//设置#innerdiv的top和left属性
+        $(outerdiv).fadeIn("fast");//淡入显示#outerdiv及.pimg
+
+        $(outerdiv).click(function () {//再次点击淡出消失弹出层
+            $(this).fadeOut("fast");
+        });
+    }
+</script>

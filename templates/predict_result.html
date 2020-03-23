@@ -1,0 +1,46 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_static %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static "admin/css/dashboard.css" %}" />
+{% endblock %}
+
+{% block coltype %}colMS{% endblock %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+{% block title %}
+    预处理结果｜登陆后台系统
+{% endblock %}
+{% block branding %}
+    <h1 id="site-name"><a href="{% url 'admin:index' %}">无人机项目管理系统</a></h1>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a>结果展示</a>
+</div>
+{% endblock %}
+
+{% block content %}
+    {% if singleImages%}
+        <h1>请确认预处理结果</h1>
+        {% for singleImage in singleImages %}
+        <table><tr>
+            <td>
+                <h1>原图</h1>
+                <img width="500px" height="500px" src="{{ singleImage.icon_originUrl }}" alt="{{ singleImage.singleImageName }}" border=0></td>
+            <td>
+                <h1>预处理结果</h1>
+                <img width="500px" height="500px" src="{{ singleImage.icon_predictUrl }}" alt="{{ singleImage.singleImageName }}" border=0></td>
+        </tr></table>
+        <form action="{% url 'preprocess:predict_confirm' userId=singleImage.userId singleImageId=singleImage.singleImageId %}" method="post" enctype="multipart/form-data" >
+            {% csrf_token %}
+            <input type="submit" value="确定" name="predict_confirm">
+            <input type="submit" value="拒绝" name="predict_cancel">
+        </form>
+        {% endfor %}
+    {% else %}
+        <h1>已完成该预处理任务</h1>
+    {% endif %}
+{% endblock %}
+
