@@ -87,26 +87,34 @@ def handleSplice(user):
 
 class PreprocessTaskAdmin(generic.BOAdmin):
 
-    def load_status(self):
-        if self.status == 'u':
-            return '未执行'
-        elif self.status == 'd':
-            return '已完成'
-        elif self.status == 'p':
-            return '正在处理'
-        elif self.status == 'i':
+    def load_identify_status(self):
+        if self.identify_status == 'u':
+            return '未识别'
+        elif self.identify_status == 'd':
+            return '已确认'
+        elif self.identify_status == 'p':
             url = '/admin/preprocess/predictresult/%s/' % (self.id) # 跳转的超链接
             url_text = '请确认识别结果'  # 显示的文本
             return format_html(u'<a href="{}" target="_blank">{}</a>'.format(url, url_text))
-    load_status.allow_tags = True
-    load_status.short_description = '状态'
+    load_identify_status.allow_tags = True
+    load_identify_status.short_description = '识别任务状态'
+
+    def load_splice_status(self):
+        if self.splice_status == 'u':
+            return '未拼接'
+        elif self.splice_status == 'd':
+            return '已完成'
+        elif self.splice_status == 'p':
+            return '正在拼接'
+    load_splice_status.allow_tags = True
+    load_splice_status.short_description = '拼接任务状态'
 
     list_per_page = 10
     actions_on_bottom = True
     actions_on_top = False
-    list_display = ['begin', 'title', load_status]
+    list_display = ['begin', 'title', load_identify_status, load_splice_status]
     list_display_links = ['title']
-    list_filter = ['status','title']
+    list_filter = ['identify_status','splice_status','title']
     search_fields = ['title']
     fields = (
         ('title'),('description'),('imageUploadPath')
@@ -138,13 +146,14 @@ class PreprocessTaskAdmin(generic.BOAdmin):
                                 identifyNum = identifyNum + 1
                                 spliceNum = spliceNum + 1
                                 if identifyNum%5 == 0:
+                                    queryset.update(identify_status='p')
                                     print("起进程识别程序")
                                     handleIdentify(user)
-
                                 if spliceNum%10 == 0:
+                                    queryset.update(splice_status='p')
                                     print("起进程拼接程序")
                                     handleSplice(user)
-                queryset.update(status='p')
+                queryset.update(splice_status='d')
     image_todo.short_description = "开始处理"
 
 

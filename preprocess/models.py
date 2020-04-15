@@ -20,10 +20,15 @@ from ModelToSQL.settings import TEMP_IMAGE_DIR, BASE_DIR
 from common import const
 from common import generic
 
-STATUS_CHOICES = (
-    ('u', '未执行'),
+IDENTIFY_STATUS_CHOICES = (
+    ('u', '未识别'),
+    ('d', '已确认'),
+    ('p', '正在确认'),
+)
+SPLICE_STATUS_CHOICES = (
+    ('u', '未拼接'),
     ('d', '已完成'),
-    ('p', '识别中'),
+    ('p', '正在拼接'),
 )
 
 def get_image_path(path,attribute):
@@ -54,7 +59,8 @@ class PreprocessTask(generic.BO):
     sex_type = (('A', u'环校路线'), ('B', u'西操场'))
     title = models.CharField(_("路线选择"), choices=sex_type, max_length=const.DB_CHAR_NAME_120)
     description = models.TextField(_("描述"), blank=True, null=True)
-    status = models.CharField(_("状态"), blank=True, null=True, max_length=const.DB_CHAR_CODE_6,choices=STATUS_CHOICES, default='u')
+    identify_status = models.CharField(_("识别状态"), blank=True, null=True, max_length=const.DB_CHAR_CODE_6,choices=IDENTIFY_STATUS_CHOICES, default='u')
+    splice_status = models.CharField(_("拼接状态"), blank=True, null=True, max_length=const.DB_CHAR_CODE_6,choices=SPLICE_STATUS_CHOICES, default='u')
     #imageUploadPath = models.FileField(_('上传图片'),help_text=u'请上传原始图片')
     #imagePredictPath = models.ImageField(upload_to=get_image_path('predict','title'))
     #imageResultPath = models.ImageField(upload_to=get_image_path('result','title'))

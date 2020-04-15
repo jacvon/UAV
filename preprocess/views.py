@@ -40,7 +40,7 @@ def handleHtmlImages(resultId):
                     singleImage.save()
                     break
             if isAllImagehandle:
-                user.status = 'd'
+                user.identify_status = 'd'
                 user.save()
             break
     singleImage_list = list(six.itervalues(singleImage_dict))

@@ -23,14 +23,14 @@
 
 {% block content %}
     {% if singleImages%}
-        <h1>请确认预处理结果</h1>
+        <h1>请确认识别结果</h1>
         {% for singleImage in singleImages %}
         <table><tr>
             <td>
                 <h1>原图</h1>
                 <img width="500px" height="500px" src="{{ singleImage.icon_originUrl }}" alt="{{ singleImage.singleImageName }}" border=0></td>
             <td>
-                <h1>预处理结果</h1>
+                <h1>识别结果</h1>
                 <img width="500px" height="500px" src="{{ singleImage.icon_predictUrl }}" alt="{{ singleImage.singleImageName }}" border=0></td>
         </tr></table>
         <form action="{% url 'preprocess:predict_confirm' userId=singleImage.userId singleImageId=singleImage.singleImageId %}" method="post" enctype="multipart/form-data" >
@@ -40,7 +40,7 @@
         </form>
         {% endfor %}
     {% else %}
-        <h1>已完成该预处理任务</h1>
+        <h1>已完成该离线识别任务</h1>
     {% endif %}
 {% endblock %}
 
