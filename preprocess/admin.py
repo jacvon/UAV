@@ -115,12 +115,13 @@ class PreprocessTaskAdmin(generic.BOAdmin):
     list_display = ['begin', 'title', load_identify_status, load_splice_status]
     list_display_links = ['title']
     list_filter = ['identify_status','splice_status','title']
-    search_fields = ['title']
+    #search_fields = ['title']
     fields = (
         ('title'),('description'),('imageUploadPath')
     )
     form = UploadForm
     actions = ['image_todo']
+    date_hierarchy = 'begin'
 
     def get_queryset(self, request):
         return super(PreprocessTaskAdmin,self).get_queryset(request).filter(end__gt=datetime.date.today())

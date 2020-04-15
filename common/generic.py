@@ -2,6 +2,7 @@
 __author__ = 'zhugl'
 # created at 15-4-21
 import datetime
+
 import xlwt
 import re
 from django.db import models
@@ -73,7 +74,7 @@ class BO(models.Model):
     """
     All business object derive from this class
     """
-    begin = models.DateField(_('begin date'),blank=True,null=True)
+    begin = models.DateTimeField(_('开始时间'), blank=True, null=True)
     end = models.DateField(_('end date'),blank=True,null=True)
     creator = models.CharField(_("creator"),blank=True,null=True,max_length=const.DB_CHAR_NAME_20)
     modifier = models.CharField(_("modifier"),blank=True,null=True,max_length=const.DB_CHAR_NAME_20)
@@ -224,7 +225,7 @@ class BOAdmin(admin.ModelAdmin):
             setattr(obj,'modifier',request.user.username)
         else:
             setattr(obj,'creator',request.user.username)
-            setattr(obj,'begin',datetime.date.today())
+            setattr(obj,'begin',datetime.datetime.now())
             setattr(obj,'end',datetime.date(9999,12,31))
             try:
                 setattr(obj,'user',request.user)
