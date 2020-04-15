@@ -34,7 +34,7 @@ def handleHtmlImages(resultId):
                         "singleImageId": singleImage.id,
                         "singleImageName": singleImage.title,
                         "icon_originUrl": "/static/upload/" + singleImage.imageOriginPath,
-                        "icon_predictUrl": "/static/upload/" + singleImage.imagePredictPath,
+                        "icon_predictUrl": "/static/upload/" + singleImage.imageIdentifyPath,
                     }
                     singleImage.is_show = True
                     singleImage.save()
@@ -65,16 +65,16 @@ def predict_confirm(request, userId,singleImageId):
         for singleImage in singleImages:
             if singleImage.id == int(singleImageId):
                 singleImage.is_confirm = True
-                overdate = datetime.datetime.now().strftime("%Y/%m/icons")
+                #overdate = datetime.datetime.now().strftime("%Y/%m/icons")
                 #存储相对路径
-                singleImage.imageResultPath = '%s/%s/%s/%s' % (overdate,'result',singleImage.title, singleImage.imageOriginPath.split('/')[-1])
+                singleImage.imageIdentifyResultPath = '%s/%s/%s/%s' % (singleImage.title, singleImage.overDate,'identifyResult',singleImage.imageOriginPath.split('/')[-1])
                 #用绝对路径创建确认结果的文件夹
-                result_folder= '%s/%s/%s/%s/%s' % (BASE_DIR, 'static/upload',overdate,'result',singleImage.title)
-                if not os.path.exists(result_folder):
-                    os.makedirs(result_folder)
+                identifyResult_folder= '%s/%s/%s/%s/%s' % (BASE_DIR, 'static/upload',singleImage.title, singleImage.overDate,'identifyResult')
+                if not os.path.exists(identifyResult_folder):
+                    os.makedirs(identifyResult_folder)
                 #需要绝对路径来执行copy操作
-                predict_path = '%s/%s/%s' % (BASE_DIR, 'static/upload',singleImage.imageOriginPath)
-                result_path = '%s/%s/%s' % (BASE_DIR, 'static/upload',singleImage.imageResultPath)
+                predict_path = '%s/%s/%s' % (BASE_DIR, 'static/upload',singleImage.imagePreprocessPath)
+                result_path = '%s/%s/%s' % (BASE_DIR, 'static/upload',singleImage.imageIdentifyResultPath)
                 copy(predict_path, result_path)
                 singleImage.save()
                 break
