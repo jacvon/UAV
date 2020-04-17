@@ -75,7 +75,7 @@ class OfflineMapManage(models.Model):
         super().save(*args, **kwargs)
 
     class Meta:
-        verbose_name = _('offlineMapManage')
+        verbose_name = _('路线')
         verbose_name_plural = _('路线管理')
 
 class PreprocessTask(generic.BO):
@@ -121,7 +121,7 @@ class PreprocessTask(generic.BO):
         # 必须调用父类的方法，否则数据不会保存
         super().save(*args, **kwargs)
     class Meta:
-        verbose_name = _('preprocesstask')
+        verbose_name = _('离线任务')
         verbose_name_plural = _('离线任务')
 
 class UploadForm(ModelForm):
