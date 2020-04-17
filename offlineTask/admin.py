@@ -7,82 +7,13 @@ from numpy.core.defchararray import strip
 from pip._vendor.distlib._backport import shutil
 
 from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR
+from splice.app import handleSplice
+from identify.app import handleIdentify
+from preprocess.app import handlePreprocess
 from common import generic
 from offlineTask.models import OfflineTask, SingleImageInfo, UploadForm, OfflineMapManage
 import datetime
 from App.detect_project.predict_my import func_predict
-
-
-def handlePreprocess(user, newItem):
-    singleImage = SingleImageInfo()
-    singleImage.title = user.title.mapNickName
-    singleImage.imageOriginPath = newItem
-    singleImage.overDate = user.overDate
-
-    #新建预测文件夹并存储预处理后的图片，后续该逻辑应放入预处理模块中
-    file = newItem.split('/')[-1]
-    #overDate = datetime.datetime.now().strftime("%Y%m%d/%H%M%S")
-    #利用绝对路径来拷贝图片
-    origin_folder = '%s/%s/%s' % (BASE_DIR, 'static/upload', newItem)
-    preprocess_folder = '%s/%s/%s/%s/%s/' % (BASE_DIR, 'static/upload', singleImage.title, user.overDate, 'preprocess')
-    #在实际数据库中只存相对路径
-    preprocess_relaFolder = '%s/%s/%s/' % (singleImage.title, user.overDate, 'preprocess')
-
-    if not os.path.exists(preprocess_folder):
-        os.makedirs(preprocess_folder)
-
-    shutil.copy(origin_folder, preprocess_folder + file)
-    singleImage.begin = datetime.datetime.now()
-    singleImage.imagePreprocessPath = preprocess_relaFolder + file
-    singleImage.save()
-
-def storgeIdentify(singleImage):
-    singleImage.is_identify = True
-    file = singleImage.imagePreprocessPath.split('/')[-1]
-    preprocess_folder = '%s/%s/%s' % (BASE_DIR, 'static/upload', singleImage.imagePreprocessPath)
-    identify_relafolder = '%s/%s/%s/' % (singleImage.title, singleImage.overDate, 'identify')
-    identify_folder = '%s/%s/%s' % (BASE_DIR, 'static/upload',identify_relafolder)
-
-    if not os.path.exists(identify_folder):
-        os.makedirs(identify_folder)
-
-    shutil.copy(preprocess_folder, identify_folder + file)
-    singleImage.imageIdentifyPath = identify_relafolder + file
-    singleImage.save()
-
-def handleIdentify(user):
-    singleImages = SingleImageInfo.objects.all()
-    for singleImage in singleImages:
-        if singleImage.overDate == user.overDate and singleImage.is_identify == False:
-            fname = BASE_DIR + "/static/upload/" + singleImage.imagePreprocessPath
-            predict_result = func_predict(str(fname))
-            if predict_result is 0 or 1:
-                storgeIdentify(singleImage)
-
-def storgeSplice(singleImage):
-    singleImage.is_splice = True
-    file = singleImage.imagePreprocessPath.split('/')[-1]
-
-    preprocess_folder = '%s/%s/%s' % (BASE_DIR, 'static/upload', singleImage.imagePreprocessPath)
-    splice_relafolder = '%s/%s/%s/' % (singleImage.title, singleImage.overDate, 'splice')
-    splice_folder = '%s/%s/%s' % (BASE_DIR, 'static/upload', splice_relafolder)
-
-    if not os.path.exists(splice_folder):
-        os.makedirs(splice_folder)
-
-    shutil.copy(preprocess_folder, splice_folder + file)
-    singleImage.imageSplicePath = splice_relafolder + file
-    singleImage.save()
-
-def handleSplice(user):
-    singleImages = SingleImageInfo.objects.all()
-    for singleImage in singleImages:
-        if singleImage.overDate == user.overDate and singleImage.is_splice is False:
-            fname = BASE_DIR + "/static/upload/" + singleImage.imagePreprocessPath
-            predict_result = func_predict(str(fname))
-            if predict_result is 0 or 1:
-                storgeSplice(singleImage)
-
 
 class OfflineTaskAdmin(generic.BOAdmin):
 

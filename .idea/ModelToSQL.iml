@@ -17,6 +17,8 @@
       <sourceFolder url="file://$MODULE_DIR$/App" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/preprocess" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/offlineTask" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/identify" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/splice" isTestSource="false" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.6 (condabypycharm)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
