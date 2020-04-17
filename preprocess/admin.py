@@ -127,7 +127,7 @@ class PreprocessTaskAdmin(generic.BOAdmin):
         elif self.comparison_status == 'p':
             return '正在比对'
     comparison_status.allow_tags = True
-    comparison_status.short_description = '预处理状态'
+    comparison_status.short_description = '比对状态'
 
     list_per_page = 10
     actions_on_bottom = True
@@ -163,6 +163,7 @@ class PreprocessTaskAdmin(generic.BOAdmin):
                                 predict_result = func_predict(str(fname))
                                 #当预处理完成后，存入单个图像model预处理信息
                                 if predict_result is 0 or 1:
+                                    queryset.update(preprocess_status='p')
                                     handlePreprocess(user,newItem)
                                 identifyNum = identifyNum + 1
                                 spliceNum = spliceNum + 1
@@ -174,7 +175,7 @@ class PreprocessTaskAdmin(generic.BOAdmin):
                                     queryset.update(splice_status='p')
                                     print("起进程拼接程序")
                                     handleSplice(user)
-                queryset.update(splice_status='d')
+                queryset.update(splice_status='d',preprocess_status='d')
     image_todo.short_description = "开始处理"
 
 class OfflineMapManageAdmin(admin.ModelAdmin):
