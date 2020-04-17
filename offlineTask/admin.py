@@ -89,12 +89,8 @@ class OfflineTaskAdmin(generic.BOAdmin):
                         if model_image_list is not None:
                             for item in model_image_list:
                                 newItem = item.replace("'", '').replace("[", '').replace("]",'').replace(' ','')
-                                fname = BASE_DIR + "/static/upload/" + newItem
-                                predict_result = func_predict(str(fname))
-                                #当预处理完成后，存入单个图像model预处理信息
-                                if predict_result is 0 or 1:
-                                    queryset.update(preprocess_status='p')
-                                    handlePreprocess(user,newItem)
+                                queryset.update(preprocess_status='p')
+                                handlePreprocess(user,newItem)
                                 identifyNum = identifyNum + 1
                                 spliceNum = spliceNum + 1
                                 if identifyNum%5 == 0:
