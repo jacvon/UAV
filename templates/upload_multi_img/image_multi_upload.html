@@ -108,7 +108,7 @@
         if (formData) {
             //必须加上csrftoken ，否则验证不通过，ajax请求无效
             $.ajax({
-                url: '{% url 'preprocess:upload_temp_images' %}',
+                url: '{% url 'offlineTask:upload_temp_images' %}',
                 dataType: 'json',// 返回值类型 一般设置为json
                 type: 'POST',
                 headers: {"X-CSRFToken": csrftoken},//django默认拒绝post请求，必须加 csrftoken，否则请求被屏蔽

@@ -1,6 +1,6 @@
 from django.conf.urls import url
 
-from preprocess import views
+from offlineTask import views
 
 urlpatterns = [
     url(r'^predictresult/(?P<resultId>\w+)/', views.image_predict, name='image_predict'),

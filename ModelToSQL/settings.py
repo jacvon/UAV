@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'App.apps.AppConfig',
-    'preprocess.apps.MyAppConfig',
+    #'preprocess.apps.MyAppConfig',
+    'offlineTask.apps.MyAppConfig',
 ]
 
 MIDDLEWARE = [

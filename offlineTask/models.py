@@ -78,7 +78,7 @@ class OfflineMapManage(models.Model):
         verbose_name = _('路线')
         verbose_name_plural = _('路线管理')
 
-class PreprocessTask(generic.BO):
+class OfflineTask(generic.BO):
     index_weight = 1
     title = models.ForeignKey(OfflineMapManage, verbose_name=u'路线选择',on_delete=models.CASCADE, help_text=u'请选择路线')
     #title = models.CharField(_("路线选择"), max_length=const.DB_CHAR_NAME_120)
@@ -128,7 +128,7 @@ class UploadForm(ModelForm):
     imageUploadPath = forms.FileField(label="上传图片", widget=ImageInput, help_text="按住ctrl多选", required=False)
     imagesOriginPathList = forms.CharField(label='', widget=UploadImageList, help_text='', required=False)
     class Meta:
-        model = PreprocessTask
+        model = OfflineTask
         fields = ['imageUploadPath','imagesOriginPathList']
 
 class SingleImageInfo(generic.BO):
@@ -145,5 +145,5 @@ class SingleImageInfo(generic.BO):
     overDate = models.CharField('', max_length=45)
 
     class Meta:
-        verbose_name = _('singleImageInfo')
+        verbose_name = _('图片信息')
         verbose_name_plural = _('图片信息')

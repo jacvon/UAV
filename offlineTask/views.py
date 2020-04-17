@@ -14,12 +14,12 @@ from django.utils import six
 from django.views.decorators.csrf import csrf_exempt
 
 from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR, WEB_HOST_MEDIA_URL
-from preprocess.models import PreprocessTask, SingleImageInfo
+from offlineTask.models import OfflineTask, SingleImageInfo
 
 
 def handleHtmlImages(resultId):
     global isAllImagehandle
-    users = PreprocessTask.objects.all()
+    users = OfflineTask.objects.all()
     singleImages = SingleImageInfo.objects.all()
     singleImage_dict = {}
 

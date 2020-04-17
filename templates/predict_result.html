@@ -33,7 +33,7 @@
                 <h1>识别结果</h1>
                 <img width="500px" height="500px" src="{{ singleImage.icon_predictUrl }}" alt="{{ singleImage.singleImageName }}" border=0></td>
         </tr></table>
-        <form action="{% url 'preprocess:predict_confirm' userId=singleImage.userId singleImageId=singleImage.singleImageId %}" method="post" enctype="multipart/form-data" >
+        <form action="{% url 'offlineTask:predict_confirm' userId=singleImage.userId singleImageId=singleImage.singleImageId %}" method="post" enctype="multipart/form-data" >
             {% csrf_token %}
             <input type="submit" value="确定" name="predict_confirm">
             <input type="submit" value="拒绝" name="predict_cancel">

@@ -8,10 +8,9 @@ from pip._vendor.distlib._backport import shutil
 
 from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR
 from common import generic
-from preprocess.models import PreprocessTask, UploadForm, SingleImageInfo, OfflineMapManage
+from offlineTask.models import OfflineTask, SingleImageInfo, UploadForm, OfflineMapManage
 import datetime
 from App.detect_project.predict_my import func_predict
-from preprocess.views import image_predict
 
 
 def handlePreprocess(user, newItem):
@@ -85,7 +84,7 @@ def handleSplice(user):
                 storgeSplice(singleImage)
 
 
-class PreprocessTaskAdmin(generic.BOAdmin):
+class OfflineTaskAdmin(generic.BOAdmin):
 
     def identify_status(self):
         if self.identify_status == 'u':
@@ -93,7 +92,7 @@ class PreprocessTaskAdmin(generic.BOAdmin):
         elif self.identify_status == 'd':
             return '已确认'
         elif self.identify_status == 'p':
-            url = '/admin/preprocess/predictresult/%s/' % (self.id) # 跳转的超链接
+            url = '/admin/offlineTask/predictresult/%s/' % (self.id) # 跳转的超链接
             url_text = '请确认识别结果'  # 显示的文本
             return format_html(u'<a href="{}" target="_blank">{}</a>'.format(url, url_text))
     identify_status.allow_tags = True
@@ -144,13 +143,13 @@ class PreprocessTaskAdmin(generic.BOAdmin):
     date_hierarchy = 'begin'
 
     def get_queryset(self, request):
-        return super(PreprocessTaskAdmin,self).get_queryset(request).filter(end__gt=datetime.date.today())
+        return super(OfflineTaskAdmin,self).get_queryset(request).filter(end__gt=datetime.date.today())
 
     def image_todo(self,request,queryset):
         global title
         identifyNum = 0
         spliceNum = 0
-        users = PreprocessTask.objects.all()
+        users = OfflineTask.objects.all()
         if queryset is not None:
             for title in queryset:
                 for user in users:
@@ -189,5 +188,5 @@ class OfflineMapManageAdmin(admin.ModelAdmin):
     )
     date_hierarchy = 'addTime'
 
-admin.site.register(PreprocessTask, PreprocessTaskAdmin)
+admin.site.register(OfflineTask, OfflineTaskAdmin)
 admin.site.register(OfflineMapManage, OfflineMapManageAdmin)
