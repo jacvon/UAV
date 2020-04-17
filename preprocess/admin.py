@@ -8,7 +8,7 @@ from pip._vendor.distlib._backport import shutil
 
 from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR
 from common import generic
-from preprocess.models import PreprocessTask, UploadForm, SingleImageInfo
+from preprocess.models import PreprocessTask, UploadForm, SingleImageInfo, OfflineMapManage
 import datetime
 from App.detect_project.predict_my import func_predict
 from preprocess.views import image_predict
@@ -16,7 +16,7 @@ from preprocess.views import image_predict
 
 def handlePreprocess(user, newItem):
     singleImage = SingleImageInfo()
-    singleImage.title = user.title
+    singleImage.title = user.title.mapNickName
     singleImage.imageOriginPath = newItem
     singleImage.overDate = user.overDate
 
@@ -87,7 +87,7 @@ def handleSplice(user):
 
 class PreprocessTaskAdmin(generic.BOAdmin):
 
-    def load_identify_status(self):
+    def identify_status(self):
         if self.identify_status == 'u':
             return '未识别'
         elif self.identify_status == 'd':
@@ -96,25 +96,45 @@ class PreprocessTaskAdmin(generic.BOAdmin):
             url = '/admin/preprocess/predictresult/%s/' % (self.id) # 跳转的超链接
             url_text = '请确认识别结果'  # 显示的文本
             return format_html(u'<a href="{}" target="_blank">{}</a>'.format(url, url_text))
-    load_identify_status.allow_tags = True
-    load_identify_status.short_description = '识别任务状态'
+    identify_status.allow_tags = True
+    identify_status.short_description = '识别状态'
 
-    def load_splice_status(self):
+    def splice_status(self):
         if self.splice_status == 'u':
             return '未拼接'
         elif self.splice_status == 'd':
             return '已完成'
         elif self.splice_status == 'p':
             return '正在拼接'
-    load_splice_status.allow_tags = True
-    load_splice_status.short_description = '拼接任务状态'
+    splice_status.allow_tags = True
+    splice_status.short_description = '拼接状态'
+
+    def preprocess_status(self):
+        if self.preprocess_status == 'u':
+            return '未处理'
+        elif self.preprocess_status == 'd':
+            return '已完成'
+        elif self.preprocess_status == 'p':
+            return '正在预处理'
+    preprocess_status.allow_tags = True
+    preprocess_status.short_description = '预处理状态'
+
+    def comparison_status(self):
+        if self.comparison_status == 'u':
+            return '未比对'
+        elif self.comparison_status == 'd':
+            return '已完成'
+        elif self.comparison_status == 'p':
+            return '正在比对'
+    comparison_status.allow_tags = True
+    comparison_status.short_description = '预处理状态'
 
     list_per_page = 10
     actions_on_bottom = True
     actions_on_top = False
-    list_display = ['begin', 'title', load_identify_status, load_splice_status]
+    list_display = ['begin', 'title', identify_status, splice_status, preprocess_status, comparison_status]
     list_display_links = ['title']
-    list_filter = ['identify_status','splice_status','title']
+    list_filter = ['title']
     #search_fields = ['title']
     fields = (
         ('title'),('description'),('imageUploadPath')
@@ -157,5 +177,16 @@ class PreprocessTaskAdmin(generic.BOAdmin):
                 queryset.update(splice_status='d')
     image_todo.short_description = "开始处理"
 
+class OfflineMapManageAdmin(admin.ModelAdmin):
+    list_per_page = 10
+    actions_on_bottom = True
+    actions_on_top = False
+    list_display = ['addTime','mapNickName','mapDescription']
+    list_display_links = ['mapNickName']
+    fields = (
+        ('mapNickName'), ('mapDescription')
+    )
+    date_hierarchy = 'addTime'
 
 admin.site.register(PreprocessTask, PreprocessTaskAdmin)
+admin.site.register(OfflineMapManage, OfflineMapManageAdmin)

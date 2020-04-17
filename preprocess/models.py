@@ -30,6 +30,16 @@ SPLICE_STATUS_CHOICES = (
     ('d', '已完成'),
     ('p', '正在拼接'),
 )
+PREPROCESS_STATUS_CHOICES = (
+    ('u', '未处理'),
+    ('d', '已完成'),
+    ('p', '正在预处理'),
+)
+COMPARISON_STATUS_CHOICES = (
+    ('u', '未比对'),
+    ('d', '已完成'),
+    ('p', '正在比对'),
+)
 
 def get_image_path(path,attribute):
     def upload_callback(instance, filename):
@@ -53,14 +63,30 @@ class ImageInput(ClearableFileInput):
         template = loader.get_template(self.template_name).render(context)
         return mark_safe(template)
 
+class OfflineMapManage(models.Model):
+    addTime = models.DateTimeField(_('创建时间'), blank=True, null=True)
+    mapNickName = models.CharField(_('路线简称'),blank=False, max_length=100)
+    mapDescription = models.TextField(_("描述"), blank=True, null=True)
+    def __str__(self):
+        return self.mapNickName
+
+    def save(self, *args, **kwargs):
+        self.addTime = datetime.datetime.now()
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = _('offlineMapManage')
+        verbose_name_plural = _('路线管理')
 
 class PreprocessTask(generic.BO):
     index_weight = 1
-    sex_type = (('A', u'环校路线'), ('B', u'西操场'))
-    title = models.CharField(_("路线选择"), choices=sex_type, max_length=const.DB_CHAR_NAME_120)
+    title = models.ForeignKey(OfflineMapManage, verbose_name=u'路线选择',on_delete=models.CASCADE, help_text=u'请选择路线')
+    #title = models.CharField(_("路线选择"), max_length=const.DB_CHAR_NAME_120)
     description = models.TextField(_("描述"), blank=True, null=True)
     identify_status = models.CharField(_("识别状态"), blank=True, null=True, max_length=const.DB_CHAR_CODE_6,choices=IDENTIFY_STATUS_CHOICES, default='u')
     splice_status = models.CharField(_("拼接状态"), blank=True, null=True, max_length=const.DB_CHAR_CODE_6,choices=SPLICE_STATUS_CHOICES, default='u')
+    preprocess_status = models.CharField(_("预处理状态"), blank=True, null=True, max_length=const.DB_CHAR_CODE_6,choices=PREPROCESS_STATUS_CHOICES, default='u')
+    comparison_status = models.CharField(_("比对状态"), blank=True, null=True, max_length=const.DB_CHAR_CODE_6,choices=COMPARISON_STATUS_CHOICES, default='u')
     #imageUploadPath = models.FileField(_('上传图片'),help_text=u'请上传原始图片')
     #imagePredictPath = models.ImageField(upload_to=get_image_path('predict','title'))
     #imageResultPath = models.ImageField(upload_to=get_image_path('result','title'))
@@ -79,8 +105,8 @@ class PreprocessTask(generic.BO):
                 #if os.path.join(WEB_HOST_MEDIA_URL, file) in self.images_list:
                     overDate = datetime.datetime.now().strftime("%Y%m%d/%H%M%S")
                     self.overDate = overDate
-                    origin_folder = '%s/%s/%s/%s/%s/' % (BASE_DIR, 'static/upload', self.title, overDate, 'origin')
-                    origin_relaFolder = '%s/%s/%s/' % (self.title, overDate, 'origin')
+                    origin_folder = '%s/%s/%s/%s/%s/' % (BASE_DIR, 'static/upload', self.title.mapNickName, overDate, 'origin')
+                    origin_relaFolder = '%s/%s/%s/' % (self.title.mapNickName, overDate, 'origin')
                     if not os.path.exists(origin_folder):
                         os.makedirs(origin_folder)
                     shutil.move(TEMP_IMAGE_DIR + file, origin_folder + file)
@@ -118,5 +144,6 @@ class SingleImageInfo(generic.BO):
     imageSplicePath = models.CharField('', max_length=10000)
     overDate = models.CharField('', max_length=45)
 
-    verbose_name = _('singleImageInfo')
-    verbose_name_plural = _('图片信息')
+    class Meta:
+        verbose_name = _('singleImageInfo')
+        verbose_name_plural = _('图片信息')

@@ -27,7 +27,7 @@ def handleHtmlImages(resultId):
         if user.id == int(resultId):
             for singleImage in singleImages:
                 isAllImagehandle = True
-                if singleImage.begin >= user.begin and singleImage.title == user.title and singleImage.is_show == False:
+                if singleImage.begin >= user.begin and singleImage.overDate == user.overDate and singleImage.is_show == False:
                     isAllImagehandle = False
                     singleImage_dict[singleImage.id] = {
                         "userId": user.id,
