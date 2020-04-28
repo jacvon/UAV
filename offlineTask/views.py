@@ -1,43 +1,45 @@
 import datetime
 import json
 import os
-import string
 import uuid
-from os import mkdir
-from wsgiref.util import FileWrapper
 
 from django.contrib.auth.decorators import login_required
-from django.core.files import File
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils import six
 from django.views.decorators.csrf import csrf_exempt
 
 from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR, WEB_HOST_MEDIA_URL
-from offlineTask.models import OfflineTask, SingleImageInfo
+from offlineTask.models import OfflineTask, SingleImageInfo, SingleImageIdentifyInfo
 
 
 def handleHtmlImages(resultId):
     global isAllImagehandle
     users = OfflineTask.objects.all()
     singleImages = SingleImageInfo.objects.all()
+    singleImageIdentifys = SingleImageIdentifyInfo.objects.all()
     singleImage_dict = {}
 
     for user in users:
         if user.id == int(resultId):
             for singleImage in singleImages:
                 isAllImagehandle = True
-                if singleImage.begin >= user.begin and singleImage.overDate == user.overDate and singleImage.is_show == False:
-                    isAllImagehandle = False
-                    singleImage_dict[singleImage.id] = {
-                        "userId": user.id,
-                        "singleImageId": singleImage.id,
-                        "singleImageName": singleImage.title,
-                        "icon_originUrl": "/static/upload/" + singleImage.imageOriginPath,
-                        "icon_predictUrl": "/static/upload/" + singleImage.imageIdentifyPath,
-                    }
-                    singleImage.is_show = True
-                    singleImage.save()
+                if singleImage.begin >= user.begin \
+                        and singleImage.overDate == user.overDate\
+                        and singleImage.is_show == False:
+                    for singleImageIdentify in singleImageIdentifys:
+                        if singleImageIdentify.singleImageId == singleImage.id:
+                            isAllImagehandle = False
+                            singleImage_dict[singleImage.id] = {
+                                "userId": user.id,
+                                "singleImageId": singleImage.id,
+                                "singleImageName": singleImageIdentify.title,
+                                "icon_originUrl": "/static/upload/" + singleImageIdentify.imagePreprocessPath,
+                                "icon_predictUrl": "/static/upload/" + singleImageIdentify.imageIdentifyPath,
+                            }
+                            singleImage.is_show = True
+                            singleImage.save()
+                            break
                     break
             if isAllImagehandle:
                 user.identify_status = 'd'
@@ -61,30 +63,30 @@ def copy(path,path1):                       #path原文件地址，path1指定�
 
 def predict_confirm(request, userId,singleImageId):
     if 'predict_confirm' in request.POST:
-        singleImages = SingleImageInfo.objects.all()
-        for singleImage in singleImages:
-            if singleImage.id == int(singleImageId):
-                singleImage.is_confirm = True
+        singleImageIdentifys = SingleImageIdentifyInfo.objects.all()
+        for singleImageIdentify in singleImageIdentifys:
+            if singleImageIdentify.singleImageId == int(singleImageId):
+                singleImageIdentify.is_confirm = True
                 #overdate = datetime.datetime.now().strftime("%Y/%m/icons")
                 #存储相对路径
-                singleImage.imageIdentifyResultPath = '%s/%s/%s/%s' % (singleImage.title, singleImage.overDate,'identifyResult',singleImage.imageOriginPath.split('/')[-1])
+                singleImageIdentify.imageIdentifyResultPath = '%s/%s/%s/%s' % (singleImageIdentify.title, singleImageIdentify.overDate,'identifyResult',singleImageIdentify.imagePreprocessPath.split('/')[-1])
                 #用绝对路径创建确认结果的文件夹
-                identifyResult_folder= '%s/%s/%s/%s/%s' % (BASE_DIR, 'static/upload',singleImage.title, singleImage.overDate,'identifyResult')
+                identifyResult_folder= '%s/%s/%s/%s/%s' % (BASE_DIR, 'static/upload',singleImageIdentify.title, singleImageIdentify.overDate,'identifyResult')
                 if not os.path.exists(identifyResult_folder):
                     os.makedirs(identifyResult_folder)
                 #需要绝对路径来执行copy操作
-                predict_path = '%s/%s/%s' % (BASE_DIR, 'static/upload',singleImage.imagePreprocessPath)
-                result_path = '%s/%s/%s' % (BASE_DIR, 'static/upload',singleImage.imageIdentifyResultPath)
+                predict_path = '%s/%s/%s' % (BASE_DIR, 'static/upload',singleImageIdentify.imagePreprocessPath)
+                result_path = '%s/%s/%s' % (BASE_DIR, 'static/upload',singleImageIdentify.imageIdentifyResultPath)
                 copy(predict_path, result_path)
-                singleImage.save()
+                singleImageIdentify.save()
                 break
         pass
     elif 'predict_cancel' in request.POST:
-        singleImages = SingleImageInfo.objects.all()
-        for singleImage in singleImages:
-            if singleImage.id == int(singleImageId):
-                singleImage.is_confirm = False
-                singleImage.save()
+        singleImageIdentifys = SingleImageIdentifyInfo.objects.all()
+        for singleImageIdentify in singleImageIdentifys:
+            if singleImageIdentify.singleImageId == int(singleImageId):
+                singleImageIdentify.is_confirm = False
+                singleImageIdentify.save()
                 break
         pass
     #测试提交代码

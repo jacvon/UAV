@@ -11,10 +11,10 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
 import os
+import djcelery
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
@@ -38,8 +38,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'App.apps.AppConfig',
-    #'preprocess.apps.MyAppConfig',
     'offlineTask.apps.MyAppConfig',
+    'djcelery',
+    'identify',
+    'preprocess',
+    'splice',
+    'ModelToSQL',
 ]
 
 MIDDLEWARE = [
@@ -156,3 +160,17 @@ MODEL_IMAGE_DIR = MEDIA_ROOT + MODEL_IMAGE_SUB_DIR
 WEB_HOST_MEDIA_URL = HOST+ MEDIA_URL[1:]+ TEMP_IMAGE_SUB_DIR
 # 定义模型中保存的图片URL:http://127.0.0.1:8000/mdedia/model_images/
 MODEL_MEDIA_URL = HOST+ MEDIA_URL[1:]+ MODEL_IMAGE_SUB_DIR
+
+
+djcelery.setup_loader()
+BROKER_URL = 'redis://:123456@127.0.0.1:6379/0'
+CELERYBEAT_SCHEDULER = 'djcelery.schedulers.DatabaseScheduler'
+CELERY_RESULT_BACKEND = 'redis://:123456@127.0.0.1:6379/1'
+CELERY_ENABLE_UTC = False
+
+
+CELERY_TIMEZONE = 'Asia/Shanghai'
+CELERY_TASK_RESULT_EXPIRES = 10
+CELERYD_LOG_FILE = BASE_DIR + "/logs/celery/celery.log"
+CELERYBEAT_LOG_FILE = BASE_DIR + "/logs/celery/beat.log"
+CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml']

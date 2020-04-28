@@ -133,17 +133,46 @@ class UploadForm(ModelForm):
 
 class SingleImageInfo(generic.BO):
     title = models.CharField(max_length=const.DB_CHAR_NAME_120)
-    is_identify = models.BooleanField(default=False)
-    is_confirm = models.BooleanField()
+    #is_identify = models.BooleanField(default=False)
+    #is_confirm = models.BooleanField()
     is_show = models.BooleanField(default=False)
-    is_splice = models.BooleanField(default=False)
+    #is_splice = models.BooleanField(default=False)
     imageOriginPath = models.CharField('', max_length=10000)
     imagePreprocessPath = models.CharField('', max_length=10000)
-    imageIdentifyPath = models.CharField('', max_length=10000)
-    imageIdentifyResultPath = models.CharField('', max_length=10000)
-    imageSplicePath = models.CharField('', max_length=10000)
+    #imageIdentifyPath = models.CharField('', max_length=10000)
+    #imageIdentifyResultPath = models.CharField('', max_length=10000)
+    #imageSplicePath = models.CharField('', max_length=10000)
     overDate = models.CharField('', max_length=45)
 
     class Meta:
         verbose_name = _('图片信息')
         verbose_name_plural = _('图片信息')
+
+class SingleImageIdentifyInfo(models.Model):
+    title = models.CharField(max_length=const.DB_CHAR_NAME_120)
+    singleImageId = models.IntegerField('')
+    is_confirm = models.BooleanField()
+    is_identify = models.BooleanField(default=False)
+    is_show = models.BooleanField(default=False)
+    imagePreprocessPath = models.CharField('', max_length=1000)
+    imageIdentifyPath = models.CharField('', max_length=1000)
+    imageIdentifyResultPath = models.CharField('', max_length=1000)
+    overDate = models.CharField('', max_length=45)
+
+    class Meta:
+        verbose_name = _('图片识别信息')
+        verbose_name_plural = _('图片识别信息')
+
+
+
+class SingleImageSpliceInfo(models.Model):
+    title = models.CharField(max_length=const.DB_CHAR_NAME_120)
+    singleImageId = models.IntegerField('')
+    is_splice = models.BooleanField(default=False)
+    imagePreprocessPath = models.CharField('', max_length=1000)
+    imageSplicePath = models.CharField('', max_length=1000)
+    overDate = models.CharField('', max_length=45)
+
+    class Meta:
+        verbose_name = _('图片比对信息')
+        verbose_name_plural = _('图片比对信息')

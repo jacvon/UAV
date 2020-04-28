@@ -26,6 +26,7 @@
       <option name="ignoredIdentifiers">
         <list>
           <option value="Two.views.student" />
+          <option value="tasks.handleIdentify.delay" />
         </list>
       </option>
     </inspection_tool>

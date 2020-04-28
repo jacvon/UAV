@@ -7,12 +7,14 @@ from numpy.core.defchararray import strip
 from pip._vendor.distlib._backport import shutil
 
 from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR
-from splice.app import handleSplice
-from identify.app import handleIdentify
+#from splice.app import handleSplice
+#from identify.app import handleIdentify
 from preprocess.app import handlePreprocess
 from common import generic
 from offlineTask.models import OfflineTask, SingleImageInfo, UploadForm, OfflineMapManage
 import datetime
+from identify.tasks import handleIdentify
+from splice.tasks import handleSplice
 from App.detect_project.predict_my import func_predict
 
 class OfflineTaskAdmin(generic.BOAdmin):
@@ -93,14 +95,14 @@ class OfflineTaskAdmin(generic.BOAdmin):
                                 handlePreprocess(user,newItem)
                                 identifyNum = identifyNum + 1
                                 spliceNum = spliceNum + 1
-                                if identifyNum%5 == 0:
+                                if identifyNum%10 == 0:
                                     queryset.update(identify_status='p')
                                     print("起进程识别程序")
-                                    handleIdentify(user)
+                                    handleIdentify.delay(user)
                                 if spliceNum%10 == 0:
                                     queryset.update(splice_status='p')
                                     print("起进程拼接程序")
-                                    handleSplice(user)
+                                    handleSplice.delay(user)
                 queryset.update(splice_status='d',preprocess_status='d')
     image_todo.short_description = "开始处理"
 

@@ -17,14 +17,13 @@ from django.conf.urls import url, include
 from django.conf.urls.static import static
 from django.contrib import admin
 import ModelToSQL.views
-from ModelToSQL import settings
+from ModelToSQL import settings, views
 
 urlpatterns = [
     url(r'^$', ModelToSQL.views.home),
     url(r'^admin/', admin.site.urls),
     url(r'^admin/offlineTask/', include(('offlineTask.urls',"offlineTask"), namespace='offlineTask')),
     url(r'^app/', include(('App.urls', "App"), namespace='app')),
-
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
