@@ -9,7 +9,7 @@ from pip._vendor.distlib._backport import shutil
 from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR
 #from splice.app import handleSplice
 #from identify.app import handleIdentify
-from preprocess.app import handlePreprocess
+from offlineTask.apps import begin_handle
 from common import generic
 from offlineTask.models import OfflineTask, SingleImageInfo, UploadForm, OfflineMapManage
 import datetime
@@ -80,8 +80,6 @@ class OfflineTaskAdmin(generic.BOAdmin):
 
     def image_todo(self,request,queryset):
         global title
-        identifyNum = 0
-        spliceNum = 0
         users = OfflineTask.objects.all()
         if queryset is not None:
             for title in queryset:
@@ -91,18 +89,8 @@ class OfflineTaskAdmin(generic.BOAdmin):
                         if model_image_list is not None:
                             for item in model_image_list:
                                 newItem = item.replace("'", '').replace("[", '').replace("]",'').replace(' ','')
-                                queryset.update(preprocess_status='p')
-                                handlePreprocess(user,newItem)
-                                identifyNum = identifyNum + 1
-                                spliceNum = spliceNum + 1
-                                if identifyNum%10 == 0:
-                                    queryset.update(identify_status='p')
-                                    print("起进程识别程序")
-                                    handleIdentify.delay(user)
-                                if spliceNum%10 == 0:
-                                    queryset.update(splice_status='p')
-                                    print("起进程拼接程序")
-                                    handleSplice.delay(user)
+                                begin_handle(newItem)
+                                break;
                 queryset.update(splice_status='d',preprocess_status='d')
     image_todo.short_description = "开始处理"
 
