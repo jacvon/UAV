@@ -151,8 +151,8 @@ def TransmissionEstimateNew(img, A, sz):
 
 
 def Guidedfilter(guide, src, r, eps):  # 引导滤波（可直接调用cv2内置函数）
-    return cv2.ximgproc.guidedFilter(guide, src, r, eps)
-    '''
+    #return cv2.ximgproc.guidedFilter(guide, src, r, eps)
+
     mean_I = cv2.boxFilter(guide,cv2.CV_32F,(r,r))
     mean_p = cv2.boxFilter(src, cv2.CV_32F,(r,r))
     mean_Ip = cv2.boxFilter(guide*src,cv2.CV_32F,(r,r))
@@ -165,7 +165,6 @@ def Guidedfilter(guide, src, r, eps):  # 引导滤波（可直接调用cv2内置
     mean_b = cv2.boxFilter(b,cv2.CV_32F,(r,r))
     res = mean_a*guide + mean_b
     return res
-    '''
 
 
 def fastGuidedfilter(guide, src, r, eps, k=4):  # 快速引导滤波

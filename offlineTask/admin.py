@@ -9,7 +9,7 @@ from pip._vendor.distlib._backport import shutil
 from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR
 #from splice.app import handleSplice
 #from identify.app import handleIdentify
-from offlineTask.apps import begin_handle
+from offlineTask.tasks import begin_handle
 from common import generic
 from offlineTask.models import OfflineTask, SingleImageInfo, UploadForm, OfflineMapManage
 import datetime
@@ -85,13 +85,9 @@ class OfflineTaskAdmin(generic.BOAdmin):
             for title in queryset:
                 for user in users:
                     if user.id == title.id:
-                        model_image_list = user.imagesOriginPathList.split(",")
-                        if model_image_list is not None:
-                            for item in model_image_list:
-                                newItem = item.replace("'", '').replace("[", '').replace("]",'').replace(' ','')
-                                begin_handle(newItem)
-                                break;
-                queryset.update(splice_status='d',preprocess_status='d')
+                        begin_handle.delay(user.folderOriginPath)
+                        print("Exitting celery Process")
+                queryset.update(splice_status='p',preprocess_status='p',identify_status = 'p')
     image_todo.short_description = "开始处理"
 
 class OfflineMapManageAdmin(admin.ModelAdmin):

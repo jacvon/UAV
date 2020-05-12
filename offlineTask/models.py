@@ -91,6 +91,7 @@ class OfflineTask(generic.BO):
     #imagePredictPath = models.ImageField(upload_to=get_image_path('predict','title'))
     #imageResultPath = models.ImageField(upload_to=get_image_path('result','title'))
     imagesOriginPathList = models.CharField('', max_length=10000)
+    folderOriginPath = models.CharField('', max_length=100)
     overDate = models.CharField('', max_length=45)
 
     def save(self, *args, **kwargs):
@@ -107,6 +108,8 @@ class OfflineTask(generic.BO):
                     self.overDate = overDate
                     origin_folder = '%s/%s/%s/%s/%s/' % (BASE_DIR, 'static/upload', self.title.mapNickName, overDate, 'origin')
                     origin_relaFolder = '%s/%s/%s/' % (self.title.mapNickName, overDate, 'origin')
+                    if self.folderOriginPath is '':
+                        self.folderOriginPath = origin_relaFolder
                     if not os.path.exists(origin_folder):
                         os.makedirs(origin_folder)
                     shutil.move(TEMP_IMAGE_DIR + file, origin_folder + file)
