@@ -11,7 +11,7 @@ from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR
 #from identify.app import handleIdentify
 from offlineTask.tasks import begin_handle
 from common import generic
-from offlineTask.models import OfflineTask, SingleImageInfo, UploadForm, OfflineMapManage
+from offlineTask.models import OfflineTask, SingleImagePreprocessInfo, UploadForm, OfflineMapManage
 import datetime
 from identify.tasks import handleIdentify
 from splice.tasks import handleSplice
@@ -25,7 +25,7 @@ class OfflineTaskAdmin(generic.BOAdmin):
         elif self.identify_status == 'd':
             return '已确认'
         elif self.identify_status == 'p':
-            url = '/admin/offlineTask/predictresult/%s/' % (self.id) # 跳转的超链接
+            url = '/admin/offlineTask/identifyResult/%s/' % (self.id) # 跳转的超链接
             url_text = '请确认识别结果'  # 显示的文本
             return format_html(u'<a href="{}" target="_blank">{}</a>'.format(url, url_text))
     identify_status.allow_tags = True
@@ -37,7 +37,9 @@ class OfflineTaskAdmin(generic.BOAdmin):
         elif self.splice_status == 'd':
             return '已完成'
         elif self.splice_status == 'p':
-            return '正在拼接'
+            url = '/admin/offlineTask/spliceResult/%s/' % (self.id)  # 跳转的超链接
+            url_text = '请确认拼接结果'  # 显示的文本
+            return format_html(u'<a href="{}" target="_blank">{}</a>'.format(url, url_text))
     splice_status.allow_tags = True
     splice_status.short_description = '拼接状态'
 
@@ -47,7 +49,9 @@ class OfflineTaskAdmin(generic.BOAdmin):
         elif self.preprocess_status == 'd':
             return '已完成'
         elif self.preprocess_status == 'p':
-            return '正在预处理'
+            url = '/admin/offlineTask/preprocessResult/%s/' % (self.id)  # 跳转的超链接
+            url_text = '请查看预处理结果'  # 显示的文本
+            return format_html(u'<a href="{}" target="_blank">{}</a>'.format(url, url_text))
     preprocess_status.allow_tags = True
     preprocess_status.short_description = '预处理状态'
 

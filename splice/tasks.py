@@ -4,7 +4,7 @@ import shutil
 
 from ModelToSQL.settings import BASE_DIR
 from App.detect_project.predict_my import func_predict
-from offlineTask.models import SingleImageInfo, SingleImageSpliceInfo
+from offlineTask.models import SingleImagePreprocessInfo, SingleImageSpliceInfo
 
 
 def storgeSplice(singleImage):
@@ -41,7 +41,7 @@ def storgeSplice(singleImage):
 @app.task(name='splice.tasks.handleSplice')
 def handleSplice(user):
     print('--->>开始比对任务222222<<---')
-    singleImages = SingleImageInfo.objects.all()
+    singleImages = SingleImagePreprocessInfo.objects.all()
     print('--->>开始比对任务333333<<---')
     singleImageSpliceInfos = SingleImageSpliceInfo.objects.all()
     print('--->>开始比对任务444444<<---')

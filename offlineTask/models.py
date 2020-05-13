@@ -81,29 +81,22 @@ class OfflineMapManage(models.Model):
 class OfflineTask(generic.BO):
     index_weight = 1
     title = models.ForeignKey(OfflineMapManage, verbose_name=u'路线选择',on_delete=models.CASCADE, help_text=u'请选择路线')
-    #title = models.CharField(_("路线选择"), max_length=const.DB_CHAR_NAME_120)
     description = models.TextField(_("描述"), blank=True, null=True)
     identify_status = models.CharField(_("识别状态"), blank=True, null=True, max_length=const.DB_CHAR_CODE_6,choices=IDENTIFY_STATUS_CHOICES, default='u')
     splice_status = models.CharField(_("拼接状态"), blank=True, null=True, max_length=const.DB_CHAR_CODE_6,choices=SPLICE_STATUS_CHOICES, default='u')
     preprocess_status = models.CharField(_("预处理状态"), blank=True, null=True, max_length=const.DB_CHAR_CODE_6,choices=PREPROCESS_STATUS_CHOICES, default='u')
     comparison_status = models.CharField(_("比对状态"), blank=True, null=True, max_length=const.DB_CHAR_CODE_6,choices=COMPARISON_STATUS_CHOICES, default='u')
-    #imageUploadPath = models.FileField(_('上传图片'),help_text=u'请上传原始图片')
-    #imagePredictPath = models.ImageField(upload_to=get_image_path('predict','title'))
-    #imageResultPath = models.ImageField(upload_to=get_image_path('result','title'))
-    imagesOriginPathList = models.CharField('', max_length=10000)
     folderOriginPath = models.CharField('', max_length=100)
     overDate = models.CharField('', max_length=45)
 
     def save(self, *args, **kwargs):
         # 阻止images字段的数据保存在数据库中，因为我们不需要
         self.images = ""
-        model_images = []
         print(self.title)
         # 将暂存目录中的图片转存到正式目录
         for root, dirs, files in os.walk(TEMP_IMAGE_DIR):
             print('files:', files)
             for file in files:
-                #if os.path.join(WEB_HOST_MEDIA_URL, file) in self.images_list:
                     overDate = datetime.datetime.now().strftime("%Y%m%d/%H%M%S")
                     self.overDate = overDate
                     origin_folder = '%s/%s/%s/%s/%s/' % (BASE_DIR, 'static/upload', self.title.mapNickName, overDate, 'origin')
@@ -113,14 +106,10 @@ class OfflineTask(generic.BO):
                     if not os.path.exists(origin_folder):
                         os.makedirs(origin_folder)
                     shutil.move(TEMP_IMAGE_DIR + file, origin_folder + file)
-                    model_images.append(os.path.join(origin_relaFolder, file))
 
         # 清空暂存目录下所有图片
         shutil.rmtree(TEMP_IMAGE_DIR)
         os.mkdir(TEMP_IMAGE_DIR)
-        # 将模型原来的图片URL换为存到正式目录后的URL
-        if self.imagesOriginPathList is '':
-            self.imagesOriginPathList = model_images
         # 必须调用父类的方法，否则数据不会保存
         super().save(*args, **kwargs)
     class Meta:
@@ -134,19 +123,14 @@ class UploadForm(ModelForm):
         model = OfflineTask
         fields = ['imageUploadPath','imagesOriginPathList']
 
-class SingleImageInfo(generic.BO):
+class SingleImagePreprocessInfo(models.Model):
     title = models.CharField(max_length=const.DB_CHAR_NAME_120)
-    #is_identify = models.BooleanField(default=False)
-    #is_confirm = models.BooleanField()
+    is_preprocess = models.BooleanField(default=False)
     is_show = models.BooleanField(default=False)
-    #is_splice = models.BooleanField(default=False)
     imageOriginPath = models.CharField('', max_length=10000)
     imagePreprocessPath = models.CharField('', max_length=10000)
-    #imageIdentifyPath = models.CharField('', max_length=10000)
-    #imageIdentifyResultPath = models.CharField('', max_length=10000)
-    #imageSplicePath = models.CharField('', max_length=10000)
     overDate = models.CharField('', max_length=45)
-
+    progress = models.FloatField('',max_length=10,default='0')
     class Meta:
         verbose_name = _('图片信息')
         verbose_name_plural = _('图片信息')
@@ -157,6 +141,7 @@ class SingleImageIdentifyInfo(models.Model):
     is_confirm = models.BooleanField()
     is_identify = models.BooleanField(default=False)
     is_show = models.BooleanField(default=False)
+    progress = models.FloatField('', max_length=10, default='0')
     imagePreprocessPath = models.CharField('', max_length=1000)
     imageIdentifyPath = models.CharField('', max_length=1000)
     imageIdentifyResultPath = models.CharField('', max_length=1000)
@@ -166,12 +151,12 @@ class SingleImageIdentifyInfo(models.Model):
         verbose_name = _('图片识别信息')
         verbose_name_plural = _('图片识别信息')
 
-
-
 class SingleImageSpliceInfo(models.Model):
     title = models.CharField(max_length=const.DB_CHAR_NAME_120)
     singleImageId = models.IntegerField('')
     is_splice = models.BooleanField(default=False)
+    is_show = models.BooleanField(default=False)
+    progress = models.FloatField('', max_length=10,default='0')
     imagePreprocessPath = models.CharField('', max_length=1000)
     imageSplicePath = models.CharField('', max_length=1000)
     overDate = models.CharField('', max_length=45)

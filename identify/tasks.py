@@ -4,7 +4,7 @@ import shutil
 
 from ModelToSQL.settings import BASE_DIR
 from App.detect_project.predict_my import func_predict
-from offlineTask.models import SingleImageInfo, SingleImageIdentifyInfo
+from offlineTask.models import SingleImagePreprocessInfo, SingleImageIdentifyInfo
 
 
 def storgeIdentify(singleImage):
@@ -40,7 +40,7 @@ def storgeIdentify(singleImage):
 @app.task(name='identify.tasks.handleIdentify')
 def handleIdentify(user):
     print('--->>开始执行任务11111<<---')
-    singleImages = SingleImageInfo.objects.all()
+    singleImages = SingleImagePreprocessInfo.objects.all()
     singleImageIdentifyInfos = SingleImageIdentifyInfo.objects.all()
     for singleImage in singleImages:
         if singleImage.overDate == user.overDate:

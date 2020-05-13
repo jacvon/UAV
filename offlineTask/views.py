@@ -10,46 +10,7 @@ from django.utils import six
 from django.views.decorators.csrf import csrf_exempt
 
 from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR, WEB_HOST_MEDIA_URL
-from offlineTask.models import OfflineTask, SingleImageInfo, SingleImageIdentifyInfo
-
-
-def handleHtmlImages(resultId):
-    global isAllImagehandle
-    users = OfflineTask.objects.all()
-    singleImages = SingleImageInfo.objects.all()
-    singleImageIdentifys = SingleImageIdentifyInfo.objects.all()
-    singleImage_dict = {}
-
-    for user in users:
-        if user.id == int(resultId):
-            for singleImage in singleImages:
-                isAllImagehandle = True
-                if singleImage.begin >= user.begin \
-                        and singleImage.overDate == user.overDate\
-                        and singleImage.is_show == False:
-                    for singleImageIdentify in singleImageIdentifys:
-                        if singleImageIdentify.singleImageId == singleImage.id:
-                            isAllImagehandle = False
-                            singleImage_dict[singleImage.id] = {
-                                "userId": user.id,
-                                "singleImageId": singleImage.id,
-                                "singleImageName": singleImageIdentify.title,
-                                "icon_originUrl": "/static/upload/" + singleImageIdentify.imagePreprocessPath,
-                                "icon_predictUrl": "/static/upload/" + singleImageIdentify.imageIdentifyPath,
-                            }
-                            singleImage.is_show = True
-                            singleImage.save()
-                            break
-                    break
-            if isAllImagehandle:
-                user.identify_status = 'd'
-                user.save()
-            break
-    singleImage_list = list(six.itervalues(singleImage_dict))
-    context = dict(
-        singleImages = singleImage_list,
-    )
-    return context
+from offlineTask.models import OfflineTask, SingleImagePreprocessInfo, SingleImageIdentifyInfo, SingleImageSpliceInfo
 
 
 def copy(path,path1):                       #path原文件地址，path1指定地址
@@ -61,11 +22,101 @@ def copy(path,path1):                       #path原文件地址，path1指定�
     fp.close()
     fp1.close()
 
-def predict_confirm(request, userId,singleImageId):
+def spliceHtmlImages(resultId):
+    users = OfflineTask.objects.all()
+
+    singleImageSpliceInfos = SingleImageSpliceInfo.objects.all()
+    singleSpliceImage_dict = {}
+
+    for user in users:
+        if user.id == int(resultId):
+            for singleImageSpliceInfo in singleImageSpliceInfos:
+                if singleImageSpliceInfo.overDate == user.overDate:
+                    singleSpliceImage_dict[singleImageSpliceInfo.id] = {
+                        "userId": user.id,
+                        "singleImageSpliceId": singleImageSpliceInfo.id,
+                        "singleImageName": singleImageSpliceInfo.title,
+                        "icon_preprocessUrl": "/static/upload/" + singleImageSpliceInfo.imagePreprocessPath,
+                        "icon_spliceUrl": "/static/upload/" + singleImageSpliceInfo.imageSplicePath,
+                    }
+                    if singleImageSpliceInfo.progress == 1:
+                        user.preprocess_status = 'd'
+                        user.save()
+                    singleImageSpliceInfo.is_show = True
+                    singleImageSpliceInfo.save()
+                    break
+            break
+    singleSpliceImage_list = list(six.itervalues(singleSpliceImage_dict))
+    context = dict(
+        singleSpliceImages=singleSpliceImage_list,
+    )
+    return context
+
+def preprocessHtmlImages(resultId):
+    users = OfflineTask.objects.all()
+
+    singleImagePreprocesss = SingleImagePreprocessInfo.objects.all()
+    singlePreprocessImage_dict = {}
+
+    for user in users:
+        if user.id == int(resultId):
+            for singleImagePreprocess in singleImagePreprocesss:
+                if singleImagePreprocess.overDate == user.overDate:
+                    singlePreprocessImage_dict[singleImagePreprocess.id] = {
+                        "userId": user.id,
+                        "singleImagePreprocessId": singleImagePreprocess.id,
+                        "singleImageName": singleImagePreprocess.title,
+                        "icon_preprocessUrl": "/static/upload/" + singleImagePreprocess.imagePreprocessPath,
+                        "icon_originUrl": "/static/upload/" + singleImagePreprocess.imageOriginPath,
+                    }
+                    if singleImagePreprocess.progress == 1:
+                        user.preprocess_status = 'd'
+                        user.save()
+                    singleImagePreprocess.is_show = True
+                    singleImagePreprocess.save()
+                    break
+            break
+    singlePreprocessImage_list = list(six.itervalues(singlePreprocessImage_dict))
+    context = dict(
+        singlePreprocessImages=singlePreprocessImage_list,
+    )
+    return context
+
+def identifyHtmlImages(resultId):
+    users = OfflineTask.objects.all()
+
+    singleImageIdentifys = SingleImageIdentifyInfo.objects.all()
+    singleIdentifyImage_dict = {}
+
+    for user in users:
+        if user.id == int(resultId):
+            for singleImageIdentify in singleImageIdentifys:
+                if singleImageIdentify.overDate == user.overDate:
+                    singleIdentifyImage_dict[singleImageIdentify.id] = {
+                        "userId": user.id,
+                        "singleImageIdentifyId": singleImageIdentify.id,
+                        "singleImageName": singleImageIdentify.title,
+                        "icon_preprocessUrl": "/static/upload/" + singleImageIdentify.imagePreprocessPath,
+                        "icon_identifyUrl": "/static/upload/" + singleImageIdentify.imageIdentifyPath,
+                        }
+                    if singleImageIdentify.progress == 1:
+                        user.identify_status = 'd'
+                        user.save()
+                    singleImageIdentify.is_show = True
+                    singleImageIdentify.save()
+                    break
+            break
+    singleIdentifyImage_list = list(six.itervalues(singleIdentifyImage_dict))
+    context = dict(
+        singleIdentifyImages = singleIdentifyImage_list,
+    )
+    return context
+
+def identifyConfirm(request, userId,singleImageIdentifyId):
     if 'predict_confirm' in request.POST:
         singleImageIdentifys = SingleImageIdentifyInfo.objects.all()
         for singleImageIdentify in singleImageIdentifys:
-            if singleImageIdentify.singleImageId == int(singleImageId):
+            if singleImageIdentify.id == int(singleImageIdentifyId):
                 singleImageIdentify.is_confirm = True
                 #overdate = datetime.datetime.now().strftime("%Y/%m/icons")
                 #存储相对路径
@@ -84,20 +135,39 @@ def predict_confirm(request, userId,singleImageId):
     elif 'predict_cancel' in request.POST:
         singleImageIdentifys = SingleImageIdentifyInfo.objects.all()
         for singleImageIdentify in singleImageIdentifys:
-            if singleImageIdentify.singleImageId == int(singleImageId):
+            if singleImageIdentify.id == int(singleImageIdentifyId):
                 singleImageIdentify.is_confirm = False
                 singleImageIdentify.save()
                 break
         pass
     #测试提交代码
-    context = handleHtmlImages(userId)
-    return render(request, 'predict_result.html', context)
+    context = identifyHtmlImages(userId)
+    return render(request, 'identifyResult.html', context)
 
+def preprocessConfirm(request,userId, singlePreprocessImageId):
+    print(userId)
+    print(singlePreprocessImageId)
+    return None
 
-def image_predict(request,resultId):
+def spliceConfirm(request,userId,singleSpliceImageId):
+    print(userId)
+    print(singleSpliceImageId)
+    return None
+
+def identifyResult(request,resultId):
     print(resultId)
-    context = handleHtmlImages(resultId)
-    return render(request, 'predict_result.html', context)
+    context = identifyHtmlImages(resultId)
+    return render(request, 'identifyResult.html', context)
+
+def spliceResult(request,resultId):
+    print(resultId)
+    context = spliceHtmlImages(resultId)
+    return render(request, 'spliceResult.html', context)
+
+def preprocessResult(request,resultId):
+    print(resultId)
+    context = preprocessHtmlImages(resultId)
+    return render(request, 'identifyResult.html', context)
 
 @login_required
 @csrf_exempt
@@ -127,5 +197,3 @@ def handle_uploaded_file(file):
             destination.write(chunk)
     # 返回图片的URL
     return os.path.join(WEB_HOST_MEDIA_URL, file_name)
-
-

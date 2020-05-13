@@ -23,17 +23,17 @@
 
 {% block content %}
     {% if singleImages%}
-        <h1>请确认识别结果</h1>
-        {% for singleImage in singleImages %}
+        <h1>请查看预处理结果</h1>
+        {% for singlePreprocessImage in singlePreprocessImages %}
         <table><tr>
             <td>
                 <h1>原图</h1>
-                <img width="500px" height="500px" src="{{ singleImage.icon_originUrl }}" alt="{{ singleImage.singleImageName }}" border=0></td>
+                <img width="500px" height="500px" src="{{ singlePreprocessImage.icon_originUrl }}" alt="{{ singlePreprocessImage.singleImageName }}" border=0></td>
             <td>
-                <h1>识别结果</h1>
-                <img width="500px" height="500px" src="{{ singleImage.icon_predictUrl }}" alt="{{ singleImage.singleImageName }}" border=0></td>
+                <h1>预处理结果</h1>
+                <img width="500px" height="500px" src="{{ singlePreprocessImage.icon_preprocessUrl }}" alt="{{ singlePreprocessImage.singleImageName }}" border=0></td>
         </tr></table>
-        <form action="{% url 'offlineTask:predict_confirm' userId=singleImage.userId singleImageId=singleImage.singleImageId %}" method="post" enctype="multipart/form-data" >
+        <form action="{% url 'offlineTask:preprocessConfirm' userId=singlePreprocessImage.userId singlePreprocessImageId=singlePreprocessImage.singlePreprocessImageId %}" method="post" enctype="multipart/form-data" >
             {% csrf_token %}
             <input type="submit" value="确定" name="predict_confirm">
             <input type="submit" value="拒绝" name="predict_cancel">
