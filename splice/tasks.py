@@ -3,7 +3,7 @@ import os
 import shutil
 
 from ModelToSQL.settings import BASE_DIR
-from App.detect_project.predict_my import func_predict
+#from App.detect_project.predict_my import func_predict
 from offlineTask.models import SingleImagePreprocessInfo, SingleImageSpliceInfo
 
 
@@ -48,6 +48,7 @@ def handleSplice(user):
     for singleImage in singleImages:
         if singleImage.overDate == user.overDate:
             fname = BASE_DIR + "/static/upload/" + singleImage.imagePreprocessPath
-            predict_result = func_predict(str(fname))
+            #predict_result = func_predict(str(fname))
+            predict_result = 1
             if predict_result is 0 or 1:
                storgeSplice(singleImage)

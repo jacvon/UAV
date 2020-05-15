@@ -15,7 +15,7 @@ from offlineTask.models import OfflineTask, SingleImagePreprocessInfo, UploadFor
 import datetime
 from identify.tasks import handleIdentify
 from splice.tasks import handleSplice
-from App.detect_project.predict_my import func_predict
+#from App.detect_project.predict_my import func_predict
 
 class OfflineTaskAdmin(generic.BOAdmin):
 

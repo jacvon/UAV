@@ -4,8 +4,8 @@ import shutil
 from django.apps import AppConfig
 
 from ModelToSQL.settings import BASE_DIR
-from App.detect_project.predict_my import func_predict
-from offlineTask.models import SingleImageInfo
+#from App.detect_project.predict_my import func_predict
+from offlineTask.models import SingleImagePreprocessInfo
 
 
 def storgeIdentify(singleImage):
@@ -23,10 +23,11 @@ def storgeIdentify(singleImage):
     singleImage.save()
 
 def handleIdentify(user):
-    singleImages = SingleImageInfo.objects.all()
+    singleImages = SingleImagePreprocessInfo.objects.all()
     for singleImage in singleImages:
         if singleImage.overDate == user.overDate and singleImage.is_identify == False:
             fname = BASE_DIR + "/static/upload/" + singleImage.imagePreprocessPath
-            predict_result = func_predict(str(fname))
+            #predict_result = func_predict(str(fname))
+            predict_result = 1
             if predict_result is 0 or 1:
                 storgeIdentify(singleImage)

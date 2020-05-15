@@ -5,7 +5,6 @@ import os
 import shutil
 
 from ModelToSQL.settings import BASE_DIR
-from App.detect_project.predict_my import func_predict
 from offlineTask.models import SingleImagePreprocessInfo, SingleImageIdentifyInfo
 from multiprocessing import freeze_support, cpu_count
 from multiprocessing import Process, Event, Queue
