@@ -59,4 +59,4 @@ class enhance_process(Process):
             cv2.imwrite(self.save_path + recv_data[1], enhanced_img)
             count += 1
             print("enhanced image : " + recv_data[1])
-        print("Exitting " + self.name + " Process")
+        print("Exitting " + self.name + "Process")

@@ -3,6 +3,7 @@ import numpy as np
 
 
 def DarkChannel(im, sz):
+    print(im.shape)
     b, g, r = cv2.split(im)
     dc = cv2.min(cv2.min(r, g), b)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (sz, sz))
@@ -230,6 +231,7 @@ def RestoreImg(im, t, A):
 
 def dehaze(src, sz=15, bGamma=False):
     src = np.float32(src) / 255
+    print(src)
     dark = DarkChannel(src, sz)
     A = AtmLight(src, dark)
     te = TransmissionEstimate(src, A, sz)

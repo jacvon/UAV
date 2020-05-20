@@ -90,6 +90,7 @@ class OfflineTaskAdmin(generic.BOAdmin):
                 for user in users:
                     if user.id == title.id:
                         begin_handle.delay(user.folderOriginPath)
+                        #begin_handle(user.folderOriginPath)
                         print("Exitting celery Process")
                 queryset.update(splice_status='p',preprocess_status='p',identify_status = 'p')
     image_todo.short_description = "开始处理"

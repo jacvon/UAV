@@ -3,7 +3,6 @@ from multiprocessing.process import current_process
 from ModelToSQL.celery import app
 import os
 import shutil
-
 from ModelToSQL.settings import BASE_DIR
 from offlineTask.models import SingleImagePreprocessInfo, SingleImageIdentifyInfo
 from multiprocessing import freeze_support, cpu_count
@@ -19,19 +18,24 @@ from splice.apps import seam_process, transform_process
 
 @app.task(name='offlineTask.tasks.begin_handle')
 def begin_handle(path):
-    current_process()._config = {'semprefix': '/mp'}
     print('CPU核心数量:' + str(cpu_count()))
     print('原始图片路径'+ path)
-    freeze_support()
     numQ = Queue(3)
     loadedQ = Queue(4)
     enhancedQ = Queue(4)
     transformedQ = Queue(4)
     num_evt = Event()
 
-    read_path = BASE_DIR + "/static/upload/" +path
+    read_path = BASE_DIR.replace('\\','/') + "/static/upload/" +path
+
     enhance_save_path = read_path.replace('origin','preprocess')
+
+    if not os.path.exists(enhance_save_path):
+        os.makedirs(enhance_save_path)
     merge_save_path = read_path.replace('origin','splice')
+
+    if not os.path.exists(merge_save_path):
+        os.makedirs(merge_save_path)
     suffix = ".JPG"
     is_dehaze = True
     is_each_save = True
@@ -51,11 +55,11 @@ def begin_handle(path):
     for p in processes:
         p.start()
 
-    for p in processes:
-        p.join()
+    #for p in processes:
+        #p.join()
 
-    numQ.close()
-    loadedQ.close()
-    enhancedQ.close()
-    transformedQ.close()
+    #numQ.close()
+    #loadedQ.close()
+    #enhancedQ.close()
+    #transformedQ.close()
     print("Exitting Main Process")

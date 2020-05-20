@@ -191,9 +191,9 @@ def handle_uploaded_file(file):
     extension = os.path.splitext(file.name)
     # 使用uuid4重命名文件，防止重名文件相互覆盖
     #注意首先在项目的根目录下新建media/tempimg，或者自己使用python代码创建目录
-    file_name = '{}{}'.format(uuid.uuid4(), extension[1])
-    with open(TEMP_IMAGE_DIR + file_name, 'wb+') as destination:
+    #file_name = '{}{}'.format(uuid.uuid4(), extension[1])
+    with open(TEMP_IMAGE_DIR + file.name, 'wb+') as destination:
         for chunk in file.chunks():#防止文件太大导致内存溢出
             destination.write(chunk)
     # 返回图片的URL
-    return os.path.join(WEB_HOST_MEDIA_URL, file_name)
+    return os.path.join(WEB_HOST_MEDIA_URL, file.name)
