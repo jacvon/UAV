@@ -23,7 +23,8 @@ class seam_process(Process):
         self.num_evt.wait()
         img_num = self.numQ.get()
         merged_img = self.getBeamImage(self.transformedQ, img_num, self.save_path, self.suffix, self.is_each_save)
-        cv2.imwrite(self.save_path + "merged_img" + self.suffix, merged_img)  # 保存拼接图像
+        #cv2.imwrite(self.save_path + "merged_img" + self.suffix, merged_img)  # 保存拼接图像
+        cv2.imencode('.jpg', merged_img)[1].tofile(self.save_path + "merged_img" + self.suffix)
         print("Exitting " + self.name + " Process")
 
     def getBeamImage(self, imgQ, img_num, save_path="./", suffix=".jpg", is_each_save=False):
@@ -47,7 +48,8 @@ class seam_process(Process):
                 ##################################################################################
 
                 if is_each_save:
-                    cv2.imwrite(save_path + "merging_img" + str(count) + suffix, mergeImg)  # 保存拼接后的图像
+                    #cv2.imwrite(save_path + "merging_img" + str(count) + suffix, mergeImg)  # 保存拼接后的图像
+                    cv2.imencode('.jpg', mergeImg)[1].tofile(save_path + "merging_img" + str(count) + suffix)
                 print("merged image : " + recv_data[1])
             else:
                 mergeImg = np.copy(recv_data[0])

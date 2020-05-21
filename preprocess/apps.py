@@ -28,7 +28,9 @@ class load_process(Process):
             self.numQ.put(len(img_files))
         self.num_evt.set()
         for index, file in enumerate(img_files):
-            loaded_img = cv2.imread(file)
+            #loaded_img = cv2.imread(file.decode())
+            loaded_img = cv2.imdecode(np.fromfile(file, dtype=np.uint8), -1)
+
             if self.is_dehaze:
                 loaded_img = idh.dehaze(loaded_img, sz=9, bGamma=False)
             self.loadedQ.put([loaded_img, img_names[index]])
@@ -56,7 +58,8 @@ class enhance_process(Process):
             enhanced_img = ieh.gamma_trans(recv_data[0], gamma=0.5)
             enhanced_img = ieh.hist_equal_CLAHE(enhanced_img, clipLimit=1.0, tileGridSize=(9, 9))
             self.enhancedQ.put([enhanced_img, recv_data[1]])
-            cv2.imwrite(self.save_path + recv_data[1], enhanced_img)
+            #cv2.imwrite(self.save_path + recv_data[1], enhanced_img)
+            cv2.imencode('.jpg', enhanced_img)[1].tofile(self.save_path + recv_data[1])
             count += 1
             print("enhanced image : " + recv_data[1])
         print("Exitting " + self.name + "Process")
