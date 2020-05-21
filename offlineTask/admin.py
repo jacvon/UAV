@@ -9,7 +9,7 @@ from pip._vendor.distlib._backport import shutil
 from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR
 #from splice.app import handleSplice
 #from identify.app import handleIdentify
-from offlineTask.tasks import begin_handle
+from offlineTask.tasks import mosiac_handle, compare_handle
 from common import generic
 from offlineTask.models import OfflineTask, SingleImagePreprocessInfo, UploadForm, OfflineMapManage
 import datetime
@@ -83,13 +83,15 @@ class OfflineTaskAdmin(generic.BOAdmin):
         return super(OfflineTaskAdmin,self).get_queryset(request).filter(end__gt=datetime.date.today())
 
     def image_todo(self,request,queryset):
-        global title
+        global title, pathImage, pathCsv
         users = OfflineTask.objects.all()
         if queryset is not None:
             for title in queryset:
                 for user in users:
                     if user.id == title.id:
-                        begin_handle.delay(user.folderOriginPath)
+                        print("start celery Process")
+                        mosiac_handle.delay(str(user.id))
+                        compare_handle.delay(user.id, pathImage, pathCsv)
                         #begin_handle(user.folderOriginPath)
                         print("Exitting celery Process")
                 queryset.update(splice_status='p',preprocess_status='p',identify_status = 'p')

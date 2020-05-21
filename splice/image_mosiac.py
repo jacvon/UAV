@@ -3,16 +3,17 @@ import shutil
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
-from scipy.ndimage.filters import convolve
+from scipy.ndimage.filters import convolve as fil_convolve
+from scipy.signal import convolve as sig_convolve
 from numba import jit
 
 
 ###剔除重叠冗余的图片###
-def removeRedundantImgs(img_files, img_names, isResize=False, scale=0.5):
-    PerArrs, Shapes = getPerArrsAndShapes(img_files, img_names, isResize, scale)
-
+def removeRedundantImgs(img_files, img_names):
     index = 1
     removed_indexs = []
+    PerArrs, Shapes = getPerArrsAndShapes(img_files, img_names)
+
     while index < len(PerArrs):
         img0 = np.zeros((Shapes[index - 1][0], Shapes[index - 1][1]), np.uint8)
         area0 = float(img0.shape[0] * img0.shape[1])
@@ -26,7 +27,7 @@ def removeRedundantImgs(img_files, img_names, isResize=False, scale=0.5):
         pts1 = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
         dst01 = cv2.perspectiveTransform(pts1, PerArrs[index - 1])
         img01_mask = cv2.fillPoly(img0.copy(), [np.int32(dst01)], 255)
-        _, contours01, _ = cv2.findContours(np.copy(img01_mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        _, contours01, _ = cv2.findContours(img01_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         assert len(contours01) == 1, "the two images must have only one overlay area."
 
         area01 = cv2.contourArea(contours01[0])
@@ -38,7 +39,7 @@ def removeRedundantImgs(img_files, img_names, isResize=False, scale=0.5):
         pts2 = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
         dst12 = cv2.perspectiveTransform(pts2, PerArrs[index])
         img12_mask = cv2.fillPoly(img1.copy(), [np.int32(dst12)], 255)
-        _, contours12, _ = cv2.findContours(np.copy(img12_mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        _, contours12, _ = cv2.findContours(img12_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         assert len(contours12) == 1, "the two images must have only one overlay area."
 
         area12 = cv2.contourArea(contours12[0])
@@ -48,7 +49,7 @@ def removeRedundantImgs(img_files, img_names, isResize=False, scale=0.5):
 
         dst02 = cv2.perspectiveTransform(pts2, np.dot(PerArrs[index - 1], PerArrs[index]))
         img02_mask = cv2.fillPoly(img0.copy(), [np.int32(dst02)], 255)
-        _, contours02, _ = cv2.findContours(np.copy(img02_mask), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        _, contours02, _ = cv2.findContours(img02_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         assert len(contours02) < 2, "the two images must have only one overlay area or no overlay area."
 
         if len(contours02) == 1:
@@ -70,18 +71,12 @@ def getReducedImages(read_path, save_path, suffix=".jpg"):
     img_files, img_names = getImgList(read_path, suffix, reverse=False)
     assert len(img_files) >= 3, "need three images at least."
 
-    ################
-    # 使用以下参数进行图片压缩，可减少计算量。
-    isResize = True
-    scale = 0.25
-    ################
-
     while True:
         img_num = len(img_files)
-        img_files, img_names = removeRedundantImgs(img_files, img_names, isResize, scale)
+        img_files, img_names = removeRedundantImgs(img_files, img_names)
         if img_num == len(img_files):
             break
-
+    # 复制文件到保存路径
     for file in img_files:
         shutil.copy(file, save_path)
     return img_files, img_names
@@ -105,32 +100,46 @@ def getImgList(path, suffix=".jpg", reverse=False, sort_by_time=False):
     return file_list, name_list
 
 
+# 压缩处理图像
+def getShrinkImg(img, scale=1.0):
+    if 0.0 < scale < 1.0:
+        return cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+    else:
+        return img
+
+
 #################################################
 # 将图像转化为方形图
-def get_square_img(img):
-    h, w, _ = img.shape
-    if h > w:
-        d = h - w
-        img = img[round(d / 2 + 0.1):round(h - d / 2), :, :]
-    elif w > h:
-        d = w - h
-        img = img[:, round(d / 2 + 0.1):round(w - d / 2), :]
+def get_square_img(img, Flag=False):
+    if Flag:
+        h, w, _ = img.shape
+        if h > w:
+            d = h - w
+            img = img[round(d / 2 + 0.1):round(h - d / 2), :, :]
+        elif w > h:
+            d = w - h
+            img = img[:, round(d / 2 + 0.1):round(w - d / 2), :]
     return img
 
 
 # 使用生成器，减少内存占用
-def img_generator(img_files, isResize=False, scale=0.5):
+def img_generator(img_files, scale=1.0):
     for i in range(len(img_files)):
         img = cv2.imread(img_files[i])
-        img = get_square_img(img)
-        if isResize:
-            img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)  # 压缩图片
+        img = get_square_img(img, Flag=True)
+        img = getShrinkImg(img, scale=scale)  # 压缩图片
         yield img
 
 
 #################################################
 
 def getTransformMatrix(origImg, origImg_name, transImg, transImg_name):
+    # 自适应缩放待处理图像，减少处理开销
+    shrink_scale = 1500.0 / ((transImg.shape[0] * transImg.shape[1]) ** 0.5)
+    shrink_scale = 1.0 if shrink_scale > 1.0 else shrink_scale
+    origImg = getShrinkImg(origImg, scale=shrink_scale)
+    transImg = getShrinkImg(transImg, scale=shrink_scale)
+
     origImgGray = cv2.cvtColor(origImg, cv2.COLOR_BGR2GRAY)
     transImgGray = cv2.cvtColor(transImg, cv2.COLOR_BGR2GRAY)
 
@@ -200,26 +209,26 @@ def getTransformMatrix(origImg, origImg_name, transImg, transImg_name):
     good_pts = matches
     """
     ############################################################
-    perArr = None
-    MIN_MATCH_COUNT = 20
+
+    MIN_MATCH_COUNT = 10
     if len(good_pts) > MIN_MATCH_COUNT:
         trans_pts = np.float32([kp_trans[m.queryIdx].pt for m in good_pts]).reshape(-1, 1, 2)
         orig_pts = np.float32([kp_orig[m.trainIdx].pt for m in good_pts]).reshape(-1, 1, 2)
         # 两种算法可选：cv2.LMEDS or cv2.RANSAC
-        perArr, mask = cv2.findHomography(trans_pts, orig_pts, cv2.RANSAC, 5.0)
+        perArr, mask = cv2.findHomography(trans_pts / shrink_scale, orig_pts / shrink_scale, cv2.RANSAC, 5.0)
     else:
         assert False, "The two images <{}, {}> need {} points at least, but only match {} points." \
             .format(origImg_name, transImg_name, MIN_MATCH_COUNT, len(good_pts))
     return np.array(perArr)
 
 
-def getPerArrsAndShapes(img_files, img_names, isResize=False, scale=0.5):
+def getPerArrsAndShapes(img_files, img_names, scale=1.0):
     assert len(img_files) >= 2, "need two images at least."
     count = 0
     perArrs = []
     Shapes = []
     src_img = None
-    for img in img_generator(img_files, isResize, scale):
+    for img in img_generator(img_files, scale):
         if count > 0:
             matrix = getTransformMatrix(src_img, img_names[count - 1], img, img_names[count])
             perArrs.append(matrix)
@@ -270,9 +279,9 @@ def getMaxBoundary(perArrs, Shapes):
 # alpha,beta分别为img1，img2的权重值
 def getOverlayImg(img1, alpha, img2, beta):
     img1_gray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-    _, mask1 = cv2.threshold(img1_gray, 1, 255, cv2.THRESH_BINARY)
+    _, mask1 = cv2.threshold(img1_gray, 0, 255, cv2.THRESH_BINARY)
     img2_gray = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-    _, mask2 = cv2.threshold(img2_gray, 1, 255, cv2.THRESH_BINARY)
+    _, mask2 = cv2.threshold(img2_gray, 0, 255, cv2.THRESH_BINARY)
 
     mask_overlay = cv2.bitwise_and(mask1, mask2)
     mask_unoverlay = cv2.bitwise_not(mask_overlay)
@@ -296,15 +305,15 @@ def findMaxAreaContour(contours):  # 找出面积最大的封闭区域，暂未�
 # 重叠区利用掩模按列来进行图像的过渡融合，以水平*和*垂直距离来设置权重alpha，使重叠区过渡相对自然
 def getOverlayImg_Distance(img1, img2):
     img1_gray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-    _, mask1 = cv2.threshold(img1_gray, 1, 255, cv2.THRESH_BINARY)
+    _, mask1 = cv2.threshold(img1_gray, 0, 255, cv2.THRESH_BINARY)
     img2_gray = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-    _, mask2 = cv2.threshold(img2_gray, 1, 255, cv2.THRESH_BINARY)
+    _, mask2 = cv2.threshold(img2_gray, 0, 255, cv2.THRESH_BINARY)
 
     mask_overlay = cv2.bitwise_and(mask1, mask2)
     mask_unoverlay = cv2.bitwise_not(mask_overlay)
 
     # 获取待拼接图像掩模的轮廓
-    _, contours_dst, _ = cv2.findContours(np.copy(mask2), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    _, contours_dst, _ = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     assert len(contours_dst) == 1
 
     # 计算待拼接图像的矩和中心
@@ -313,8 +322,16 @@ def getOverlayImg_Distance(img1, img2):
     cY_dst = round(M_dst["m01"] / M_dst["m00"])
 
     # 获取重叠区掩模的轮廓
-    _, contours_overlay, _ = cv2.findContours(np.copy(mask_overlay),
-                                              cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    _, contours_overlay, _ = cv2.findContours(mask_overlay, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # ** ** ** ** ** 利用重叠区域面积比来判断是否需要跳过当前图像的拼接 ** ** ** ** **
+    # 重叠区域过大的拼接，不仅意义不大，反而影响拼接效果
+    area_threshold = 0.5
+    dst_area = cv2.contourArea(contours_dst[0])
+    for k in range(len(contours_overlay)):
+        if cv2.contourArea(contours_overlay[k]) / dst_area > area_threshold:
+            print("Warning: 因重叠区域占比较大，跳过本次拼接！")
+            return img1
+    # ** ** ** ** ** 利用重叠区域面积比来判断是否需要跳过当前图像的拼接 ** ** ** ** **
 
     img_overlay = np.zeros_like(img1, np.uint8)
     for k in range(len(contours_overlay)):
@@ -323,49 +340,36 @@ def getOverlayImg_Distance(img1, img2):
         cX_overlay = round(M_overlay["m10"] / M_overlay["m00"])
         cY_overlay = round(M_overlay["m01"] / M_overlay["m00"])
 
-        # 计算重叠区的边界极值
-        bound_maxVal = np.max(contours_overlay[k], axis=0)
-        bound_minVal = np.min(contours_overlay[k], axis=0)
-        dx = bound_maxVal[0, 0] - bound_minVal[0, 0]
-        dy = bound_maxVal[0, 1] - bound_minVal[0, 1]
+        x, y, w, h = cv2.boundingRect(contours_overlay[k])
+        img1_segment = np.copy(img1[y:y + h, x:x + w])
+        img2_segment = np.copy(img2[y:y + h, x:x + w])
 
-        mask_segment = cv2.fillPoly(np.zeros(img1.shape[0:2], np.uint8), [contours_overlay[k]], 255)
-        img_col = np.zeros_like(img1, np.uint8)
-        d = bound_maxVal[0, 0] - bound_minVal[0, 0] + 1
+        img_col = np.zeros_like(img1_segment, np.uint8)
         if cX_dst >= cX_overlay:
-            # print("重叠区向右拼接融合")
-            for j in range(bound_minVal[0, 0], bound_maxVal[0, 0] + 1):
-                alpha = (bound_maxVal[0, 0] + 1 - j) / d
-                img_col[bound_minVal[0, 1]:bound_maxVal[0, 1] + 1, j:j + 1] = \
-                    getOverlayImg(img1[bound_minVal[0, 1]:bound_maxVal[0, 1] + 1, j:j + 1], alpha,
-                                  img2[bound_minVal[0, 1]:bound_maxVal[0, 1] + 1, j:j + 1], 1 - alpha)
+            # print("重叠区从左向右拼接融合")
+            for j in range(w):
+                alpha = (w - j) / float(w)
+                img_col[:, j:j + 1] = getOverlayImg(img1_segment[:, j:j + 1], alpha, img2_segment[:, j:j + 1], 1 - alpha)
         else:
-            # print("重叠区向左拼接融合")
-            for j in range(bound_minVal[0, 0], bound_maxVal[0, 0] + 1):
-                alpha = (j - bound_minVal[0, 0]) / d
-                img_col[bound_minVal[0, 1]:bound_maxVal[0, 1] + 1, j:j + 1] = \
-                    getOverlayImg(img1[bound_minVal[0, 1]:bound_maxVal[0, 1] + 1, j:j + 1], alpha,
-                                  img2[bound_minVal[0, 1]:bound_maxVal[0, 1] + 1, j:j + 1], 1 - alpha)
+            # print("重叠区从右向左拼接融合")
+            for j in range(w):
+                alpha = j / float(w)
+                img_col[:, j:j + 1] = getOverlayImg(img1_segment[:, j:j + 1], alpha, img2_segment[:, j:j + 1], 1 - alpha)
 
-        img_row = np.zeros_like(img1, np.uint8)
-        d = bound_maxVal[0, 1] - bound_minVal[0, 1] + 1
+        img_row = np.zeros_like(img1_segment, np.uint8)
         if cY_dst >= cY_overlay:
-            # print("重叠区向下拼接融合")
-            for i in range(bound_minVal[0, 1], bound_maxVal[0, 1] + 1):
-                alpha = (bound_maxVal[0, 1] + 1 - i) / d
-                img_row[i:i + 1, bound_minVal[0, 0]:bound_maxVal[0, 0] + 1] = \
-                    getOverlayImg(img1[i:i + 1, bound_minVal[0, 0]:bound_maxVal[0, 0] + 1], alpha,
-                                  img2[i:i + 1, bound_minVal[0, 0]:bound_maxVal[0, 0] + 1], 1 - alpha)
+            # print("重叠区从上向下拼接融合")
+            for i in range(h):
+                alpha = (h - i) / float(h)
+                img_row[i:i + 1, :] = getOverlayImg(img1_segment[i:i + 1, :], alpha, img2_segment[i:i + 1, :], 1 - alpha)
         else:
-            # print("重叠区向上拼接融合")
-            for i in range(bound_minVal[0, 1], bound_maxVal[0, 1] + 1):
-                alpha = (i - bound_minVal[0, 1]) / d
-                img_row[i:i + 1, bound_minVal[0, 0]:bound_maxVal[0, 0] + 1] = \
-                    getOverlayImg(img1[i:i + 1, bound_minVal[0, 0]:bound_maxVal[0, 0] + 1], alpha,
-                                  img2[i:i + 1, bound_minVal[0, 0]:bound_maxVal[0, 0] + 1], 1 - alpha)
+            # print("重叠区从下向上拼接融合")
+            for i in range(h):
+                alpha = i / float(h)
+                img_row[i:i + 1, :] = getOverlayImg(img1_segment[i:i + 1, :], alpha, img2_segment[i:i + 1, :], 1 - alpha)
 
-        img_segment = cv2.addWeighted(img_col, dy / float(dx + dy), img_row, dx / float(dx + dy), gamma=0)
-        img_segment = cv2.bitwise_and(img_segment, img_segment, mask=mask_segment)
+        img_segment = np.zeros_like(img_overlay, np.uint8)
+        img_segment[y:y + h, x:x + w] = cv2.addWeighted(img_col, h / float(w + h), img_row, w / float(w + h), gamma=0)
         img_overlay = cv2.add(img_overlay, img_segment, mask=mask_overlay)
 
     img_unoverlay = cv2.add(img1, img2, mask=mask_unoverlay)
@@ -379,9 +383,10 @@ def getOverlayImg_Distance(img1, img2):
 
 ############################################################
 # 最佳缝合线拼接
-@jit
-def overlapImgExtend(img, direction):  # 填充重叠区黑边, 注意*本函数会直接操作输入图像*
-    if direction == "VERTICAL":
+@jit(nopython=True)
+def overlapImgExtend(img, direction):  # 本函数在此未使用
+    # 填充重叠区黑边, 注意*本函数会直接操作输入图像*
+    if direction == "LEFT_RIGHT":
         for x in range(img.shape[1]):
             for y in range(0, img.shape[0]):
                 if img[y, x].all():
@@ -391,8 +396,7 @@ def overlapImgExtend(img, direction):  # 填充重叠区黑边, 注意*本函数
                 if img[y, x].all():
                     img[y + 1:img.shape[0], x] = img[y, x].copy()
                     break
-
-    if direction == "HORIZONAL":
+    elif direction == "UP_DOWN":
         for y in range(img.shape[0]):
             for x in range(0, img.shape[1]):
                 if img[y, x].all():
@@ -402,11 +406,14 @@ def overlapImgExtend(img, direction):  # 填充重叠区黑边, 注意*本函数
                 if img[y, x].all():
                     img[y, x + 1:img.shape[1]] = img[y, x].copy()
                     break
+    else:
+        assert False, "wrong direction"
     return img
 
 
-'''
-def calc_energy(img): # c
+# 计算能量图方法v0
+def calc_energy_v0(img):
+    # 基于Sobel算子
     filter_du = np.array([
         [1.0, 2.0, 1.0],
         [0.0, 0.0, 0.0],
@@ -426,129 +433,187 @@ def calc_energy(img): # c
     filter_dv = np.stack([filter_dv] * 3, axis=2)
 
     img = img.astype(np.float32)
-    convolved = np.absolute(convolve(img, filter_du)) + np.absolute(convolve(img, filter_dv))
+    convolved = np.absolute(fil_convolve(img, filter_du)) + np.absolute(fil_convolve(img, filter_dv))
 
     # 计算红，绿，蓝通道中的能量值之和
     energy_map = convolved.sum(axis=2)
     return energy_map
-'''
 
 
-def calc_energy(img):
-    """
+# 计算能量图方法v1 (与calc_energy_v0类似)
+def calc_energy_v1(img):
     # 基于Sobel算子
-    grad_x=cv2.Sobel(img,cv2.CV_32F,1,0,ksize=3)
-    grad_y=cv2.Sobel(img,cv2.CV_32F,0,1,ksize=3)
-    convolved = np.sqrt(np.power(grad_x,2)+np.power(grad_y,2))
-    """
-    # 基于Scharr算子
+    # grad_x = cv2.Sobel(img, cv2.CV_32F, 1, 0, ksize=3)
+    # grad_y = cv2.Sobel(img, cv2.CV_32F, 0, 1, ksize=3)
+    # convolved = np.sqrt(np.power(grad_x, 2) + np.power(grad_y, 2))
+
+    # 基于Scharr算子 （优于Sobel算子）
     grad_x = cv2.Sobel(img, cv2.CV_32F, 1, 0, ksize=-1)
     grad_y = cv2.Sobel(img, cv2.CV_32F, 0, 1, ksize=-1)
     convolved = np.sqrt(np.power(grad_x, 2) + np.power(grad_y, 2))
 
-    # convolved=np.absolute(cv2.Laplacian(img,cv2.CV_32F))
+    # 基于Laplacian算子 （二阶算子）
+    # convolved = np.absolute(cv2.Laplacian(img, cv2.CV_32F, ksize=3))
 
     energy_map = convolved.sum(axis=2)
     return energy_map
 
 
-@jit
-def minimum_seam(img, direction):
-    row, col, _ = img.shape
-    img_ext = overlapImgExtend(img.copy(), direction)
-    energy_map = calc_energy(img_ext)
+# 计算能量图方法v2
+def calc_energy_v2(img1, img2):
+    """计算能量函数：灰度差分图和纹理权重图"""
+    w_gray, w_grad = 0.1, 0.9
+    gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
 
-    M = energy_map.copy()
-    backtrack = np.zeros_like(M, dtype=np.int32)
+    # 灰度差分图（亮度差异图）
+    gray_dif = cv2.absdiff(np.float32(gray1), np.float32(gray2))
+    gray_dif = cv2.normalize(gray_dif, None, 0, 255, cv2.NORM_MINMAX)
 
-    min_energy = 0
-    if direction == "VERTICAL":
-        for i in range(1, row):
-            for j in range(0, col):
-                # 处理图像的左侧边缘，确保不会索引-1
-                if j == 0:
-                    idx = np.argmin(M[i - 1, j:j + 2])
-                    backtrack[i, j] = idx + j
-                    min_energy = M[i - 1, idx + j]
-                else:
-                    idx = np.argmin(M[i - 1, j - 1:j + 2])
-                    backtrack[i, j] = idx + j - 1
-                    min_energy = M[i - 1, idx + j - 1]
-                M[i, j] += min_energy
-    elif direction == "HORIZONAL":
-        for j in range(1, col):
-            for i in range(0, row):
-                # 处理图像的上侧边缘，确保不会索引-1
-                if i == 0:
-                    idy = np.argmin(M[i:i + 2, j - 1])
-                    backtrack[i, j] = idy + i
-                    min_energy = M[idy + i, j - 1]
-                else:
-                    idy = np.argmin(M[i - 1:i + 2, j - 1])
-                    backtrack[i, j] = idy + i - 1
-                    min_energy = M[idy + i - 1, j - 1]
-                M[i, j] += min_energy
+    # 梯度差分图（纹理结构差异图）
+    grad_x = cv2.Sobel(gray_dif, cv2.CV_32F, 1, 0, ksize=-1)
+    grad_y = cv2.Sobel(gray_dif, cv2.CV_32F, 0, 1, ksize=-1)
+    grad_dif = np.sqrt(np.power(grad_x, 2) + np.power(grad_y, 2))
+    # grad_dif = np.absolute(cv2.Laplacian(gray_dif, cv2.CV_32F, ksize=3))  # 基于Laplacian算子
+    grad_dif = cv2.normalize(grad_dif, None, 0, 255, cv2.NORM_MINMAX)
+
+    # 此处卷积核实质是对相邻8个像素求和
+    kernel = np.ones([3, 3], dtype=np.float32)
+    kernel[1, 1] = 0
+
+    # 亮度和纹理权重图
+    weights_gray = sig_convolve(gray_dif, kernel, "same") / 8.0
+    weights_grad = sig_convolve(grad_dif, kernel, "same") / 8.0
+
+    # 能量图
+    weights = w_gray * weights_gray + w_grad * weights_grad
+    energy = np.multiply(grad_dif, weights/255.0)
+    # energy = w_gray * gray_dif + w_grad * grad_dif    # 跳过亮度和纹理权重图步骤，简化计算量
+    return energy
+
+
+def minimum_seam(imgs, direction):
+    row, col, _ = imgs[0].shape
+    if len(imgs) == 1:
+        energy_map = calc_energy_v1(imgs[0])
+    elif len(imgs) == 2:
+        energy_map = calc_energy_v2(imgs[0], imgs[1])
     else:
-        assert False, "wrong direction"
+        assert False, "ERROR: 计算能量图的输入图片有误（只允1或2张）"
+    backtrack = np.zeros_like(energy_map, dtype=np.int32)
 
-    return M, backtrack
+    @jit(nopython=True)
+    def cal_backtrack(row, col, energy_map, backtrack):
+        min_energy = 0
+        if direction == "LEFT_RIGHT":
+            for i in range(1, row):
+                for j in range(0, col):
+                    # 处理图像的左侧边缘，确保不会索引-1
+                    if j == 0:
+                        idx = np.argmin(energy_map[i - 1, j:j + 2])
+                        backtrack[i, j] = idx + j
+                        min_energy = energy_map[i - 1, idx + j]
+                    else:
+                        idx = np.argmin(energy_map[i - 1, j - 1:j + 2])
+                        backtrack[i, j] = idx + j - 1
+                        min_energy = energy_map[i - 1, idx + j - 1]
+                    energy_map[i, j] += min_energy
+        elif direction == "UP_DOWN":
+            for j in range(1, col):
+                for i in range(0, row):
+                    # 处理图像的上侧边缘，确保不会索引-1
+                    if i == 0:
+                        idy = np.argmin(energy_map[i:i + 2, j - 1])
+                        backtrack[i, j] = idy + i
+                        min_energy = energy_map[idy + i, j - 1]
+                    else:
+                        idy = np.argmin(energy_map[i - 1:i + 2, j - 1])
+                        backtrack[i, j] = idy + i - 1
+                        min_energy = energy_map[idy + i - 1, j - 1]
+                    energy_map[i, j] += min_energy
+        else:
+            assert False, "wrong direction"
+        return energy_map, backtrack
+
+    return cal_backtrack(row, col, energy_map, backtrack)
 
 
-def find_seam(img, bound_minVal, bound_maxVal, direction):
-    left, right = bound_minVal[0][0], bound_maxVal[0][0]
-    top, bottom = bound_minVal[0][1], bound_maxVal[0][1]
+# 求取包含缝合线渐变区域的权重矩阵
+def get_seam_weight(seam_pts, shape, direction, mix_width=10):
+    weight_array = [np.zeros(shape, np.uint8) for i in range(mix_width)]
+    for i in range(mix_width):
+        cv2.polylines(weight_array[i], [seam_pts], isClosed=False, color=1, thickness=i + 1)
+    weight_array = np.sum(weight_array, axis=0) / 2.0 / mix_width
 
-    pts0 = pts1 = pts2 = []
-    row, col, _ = img[top:bottom, left:right].shape
+    @jit(nopython=True)
+    def fill_half_weight(weight_array, direction, shape):
+        if direction == "LEFT_RIGHT":
+            for i in range(shape[0]):
+                for j in range(0, shape[1]):
+                    if abs(weight_array[i][j] - 0.5) < 1e-4:
+                        break
+                    weight_array[i][j] = 1.0 - weight_array[i][j]
+        elif direction == "UP_DOWN":
+            for j in range(shape[1]):
+                for i in range(0, shape[0]):
+                    if abs(weight_array[i][j] - 0.5) < 1e-4:
+                        break
+                    weight_array[i][j] = 1.0 - weight_array[i][j]
+        else:
+            assert False, "wrong direction"
+        return weight_array
 
-    if direction == "RIGHT" or direction == "LEFT":
-        M, backtrack = minimum_seam(img[top:bottom, left:right], direction="VERTICAL")
+    return fill_half_weight(weight_array, direction, shape)
 
-        j = np.argmin(M[-1])
-        for i in reversed(range(row)):
-            pts0.append([j + left, i + top])
-            j = backtrack[i, j]
 
-        pts1 = pts0.copy()
-        pts1.extend([[right, top], [right, bottom]])
-        pts2 = pts0.copy()
-        pts2.extend([[left, top], [left, bottom]])
-    elif direction == "DOWN" or direction == "UP":
-        M, backtrack = minimum_seam(img[top:bottom, left:right], direction="HORIZONAL")
+def find_seam(img_segments, direction):
+    # 自适应缩放待处理图像，减少处理开销
+    shrink_scale = 1500.0 / ((img_segments[0].shape[0] * img_segments[0].shape[1]) ** 0.5)
+    shrink_scale = 1.0 if shrink_scale > 1.0 else shrink_scale
+    img_segments[0] = getShrinkImg(img_segments[0], scale=shrink_scale)
+    if len(img_segments) > 1:  # 用于计算能量图方法v2
+        img_segments[1] = getShrinkImg(img_segments[1], scale=shrink_scale)
 
-        i = np.argmin(M[-1])
-        for j in reversed(range(col)):
-            pts0.append([j + left, i + top])
-            i = backtrack[i, j]
+    energy_map, backtrack = minimum_seam(img_segments, direction)
+    row, col, _ = img_segments[0].shape
 
-        pts1 = pts0.copy()
-        pts1.extend([[left, bottom], [right, bottom]])
-        pts2 = pts0.copy()
-        pts2.extend([[left, top], [right, top]])
-    else:
-        assert False, "wrong direction"
+    @jit(nopython=True)
+    def search_seam_pts(energy_map, backtrack, direction, row, col):
+        seam_pts = []
+        if direction == "LEFT_RIGHT":
+            # 限制缝合线搜索起始位置位于图像（1/3:2/3）的中间区域
+            j = np.argmin(energy_map[-1, int(col / 3.0):int(2 * col / 3.0)])
+            for i in range(row - 1, -1, -1):
+                seam_pts.append([j, i])
+                j = backtrack[i, j]
+        elif direction == "UP_DOWN":
+            # 限制缝合线搜索起始位置位于图像（1/3:2/3）的中间区域
+            i = np.argmin(energy_map[int(row / 3.0):int(2 * row / 3.0), -1])
+            for j in range(col - 1, -1, -1):
+                seam_pts.append([j, i])
+                i = backtrack[i, j]
+        else:
+            assert False, "wrong direction"
+        return seam_pts
 
-    # 若拼接方向相反，两个点集进行交换
-    if direction == "LEFT" or direction == "UP":
-        pts1, pts2 = pts2.copy(), pts1.copy()
-
-    pts0 = np.array(pts0, np.int32).reshape((-1, 1, 2))
-    pts1 = np.array(pts1, np.int32).reshape((-1, 1, 2))
-    pts2 = np.array(pts2, np.int32).reshape((-1, 1, 2))
-    return pts0, pts1, pts2
+    seam_pts = search_seam_pts(energy_map, backtrack, direction, row, col)
+    seam_pts = np.array(seam_pts, np.float32).reshape((-1, 2)) / shrink_scale
+    seam_pts = seam_pts.astype(np.int32)
+    return seam_pts
 
 
 def getOverlayImg_Seam(img1, img2):
     img1_gray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-    _, mask1 = cv2.threshold(img1_gray, 1, 255, cv2.THRESH_BINARY)
+    _, mask1 = cv2.threshold(img1_gray, 0, 255, cv2.THRESH_BINARY)
     img2_gray = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-    _, mask2 = cv2.threshold(img2_gray, 1, 255, cv2.THRESH_BINARY)
+    _, mask2 = cv2.threshold(img2_gray, 0, 255, cv2.THRESH_BINARY)
 
     mask_overlay = cv2.bitwise_and(mask1, mask2)
     mask_unoverlay = cv2.bitwise_not(mask_overlay)
+    mix_width = 10  # 缝合线区域的融合宽度
 
     # 获取待拼接图像掩模的轮廓
-    _, contours_dst, _ = cv2.findContours(np.copy(mask2), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    _, contours_dst, _ = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     assert len(contours_dst) == 1
 
     # 计算待拼接图像的矩和中心
@@ -557,12 +622,24 @@ def getOverlayImg_Seam(img1, img2):
     cY_dst = round(M_dst["m01"] / M_dst["m00"])
 
     # 获取重叠区掩模的轮廓
-    _, contours_overlay, _ = cv2.findContours(np.copy(mask_overlay), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    _, contours_overlay, _ = cv2.findContours(mask_overlay, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    img_overlay = cv2.addWeighted(img1, 0.5, img2, 0.5, gamma=0)
-    img_overlay = cv2.bitwise_and(img_overlay, img_overlay, mask=mask_overlay)
-    img_unoverlay = cv2.add(img1, img2, mask=mask_unoverlay)
-    img_merged = cv2.add(img_overlay, img_unoverlay)
+    # ** ** ** ** ** 利用重叠区域面积比来判断是否需要跳过当前图像的拼接 ** ** ** ** **
+    # 重叠区域过大的拼接，不仅意义不大，反而影响拼接效果
+    area_threshold = 0.75
+    dst_area = cv2.contourArea(contours_dst[0])
+    for k in range(len(contours_overlay)):
+        if cv2.contourArea(contours_overlay[k]) / dst_area >= area_threshold:
+            print("Warning: 因重叠区域占比较大，跳过本次图像拼接！")
+            return img1
+    # ** ** ** ** ** 利用重叠区域面积比来判断是否需要跳过当前图像的拼接 ** ** ** ** **
+
+    ############# 用于计算能量图方法v1的合并图 #############
+    # img_overlay = cv2.addWeighted(img1, 0.5, img2, 0.5, gamma=0)
+    # img_overlay = cv2.bitwise_and(img_overlay, img_overlay, mask=mask_overlay)
+    # img_unoverlay = cv2.add(img1, img2, mask=mask_unoverlay)
+    # img_for_energy = cv2.add(img_overlay, img_unoverlay)
+    ##############################################
 
     img_overlay = np.zeros_like(img1, np.uint8)
     for k in range(len(contours_overlay)):
@@ -571,47 +648,43 @@ def getOverlayImg_Seam(img1, img2):
         cX_overlay = round(M_overlay["m10"] / M_overlay["m00"])
         cY_overlay = round(M_overlay["m01"] / M_overlay["m00"])
 
-        # 计算重叠区的边界极值
-        bound_maxVal = np.max(contours_overlay[k], axis=0)
-        bound_minVal = np.min(contours_overlay[k], axis=0)
-        dx = bound_maxVal[0, 0] - bound_minVal[0, 0]
-        dy = bound_maxVal[0, 1] - bound_minVal[0, 1]
-
-        pts0 = pts1 = pts2 = None
-        mask_segment = cv2.fillPoly(np.zeros(img1.shape[0:2], np.uint8), [contours_overlay[k]], 255)
-        if dy >= dx:
+        # TODO: 拐角可以考虑水平和垂直方向上缝合线的叠加
+        x, y, w, h = cv2.boundingRect(contours_overlay[k])
+        if abs(cX_dst - cX_overlay) >= abs(cY_dst - cY_overlay):
+            direction = "LEFT_RIGHT"
+            # seam_pts = find_seam([img_for_energy[y:y + h, x:x + w]], direction)  #计算能量图方法v1
+            seam_pts = find_seam([img1[y:y + h, x:x + w], img2[y:y + h, x:x + w]], direction)  # 计算能量图方法v2
             if cX_dst >= cX_overlay:
-                # print("重叠区向右拼接融合")
-                pts0, pts1, pts2 = find_seam(img_merged, bound_minVal, bound_maxVal, direction="RIGHT")
+                # print("重叠区从左向右拼接融合")
+                weight_array1 = get_seam_weight(seam_pts, (h, w), direction, mix_width)
+                weight_array2 = 1.0 - weight_array1
             else:
-                # print("重叠区向左拼接融合")
-                pts0, pts1, pts2 = find_seam(img_merged, bound_minVal, bound_maxVal, direction="LEFT")
+                # print("重叠区从右向左拼接融合")
+                weight_array2 = get_seam_weight(seam_pts, (h, w), direction, mix_width)
+                weight_array1 = 1.0 - weight_array2
         else:
+            direction = "UP_DOWN"
+            # seam_pts = find_seam([img_for_energy[y:y + h, x:x + w]], direction)  #计算能量图方法v1
+            seam_pts = find_seam([img1[y:y + h, x:x + w], img2[y:y + h, x:x + w]], direction)  # 计算能量图方法v2
             if cY_dst >= cY_overlay:
-                # print("重叠区向下拼接融合")
-                pts0, pts1, pts2 = find_seam(img_merged, bound_minVal, bound_maxVal, direction="DOWN")
+                # print("重叠区从上向下拼接融合")
+                weight_array1 = get_seam_weight(seam_pts, (h, w), direction, mix_width)
+                weight_array2 = 1.0 - weight_array1
             else:
-                # print("重叠区向上拼接融合")
-                pts0, pts1, pts2 = find_seam(img_merged, bound_minVal, bound_maxVal, direction="UP")
-
-        img1_part = cv2.fillPoly(img1.copy(), [pts1], (0, 0, 0))
-        img2_part = cv2.fillPoly(img2.copy(), [pts2], (0, 0, 0))
-
-        # 填补接缝上缺失的像素点
-        for i in range(len(pts0)):
-            if img1[pts0[i][0][1], pts0[i][0][0]].all():
-                img1_part[pts0[i][0][1], pts0[i][0][0]] = img1[pts0[i][0][1], pts0[i][0][0]].copy()
-            else:
-                img2_part[pts0[i][0][1], pts0[i][0][0]] = img2[pts0[i][0][1], pts0[i][0][0]].copy()
-
-        img_segment = cv2.add(img1_part, img2_part, mask=mask_segment)
+                # print("重叠区从下向上拼接融合")
+                weight_array2 = get_seam_weight(seam_pts, (h, w), direction, mix_width)
+                weight_array1 = 1.0 - weight_array2
+        weighted_img1_sement = (img1[y:y + h, x:x + w] * np.stack([weight_array1] * 3, axis=2)).astype(np.uint8)
+        weighted_img2_sement = (img2[y:y + h, x:x + w] * np.stack([weight_array2] * 3, axis=2)).astype(np.uint8)
+        img_segment = np.zeros_like(img_overlay, np.uint8)
+        img_segment[y:y + h, x:x + w] = cv2.add(weighted_img1_sement, weighted_img2_sement)
         img_overlay = cv2.add(img_overlay, img_segment, mask=mask_overlay)
+
         ################################################
-        # 绘制缝合线，便于调试
-        # img_overlay = cv2.polylines(img_overlay, [pts0], False, (0,0,255), 5)
-        # img_overlay = cv2.polylines(img_overlay, [pts1], True, (0,0,255), 5)
-        # img_overlay = cv2.polylines(img_overlay, [pts2], True, (0,0,255), 5)
+        # 绘制缝合线
+        # img_overlay[y:y + h, x:x + w] = cv2.polylines(img_overlay[y:y + h, x:x + w], [seam_pts], False, (0, 0, 255), 10)
         ################################################
+
     img_unoverlay = cv2.add(img1, img2, mask=mask_unoverlay)
     img_merged = cv2.add(img_overlay, img_unoverlay)
     return img_merged
@@ -636,68 +709,14 @@ def Show_Img(img, title="", lastFlag=False):  # 直接绘制图像，用于调�
     return None
 
 
-# Batch Processing
+# Processing one by one
 def getMosiacImage(read_path, save_path="./", suffix=".jpg", isShowImg=False, isSaveImg=False):
     img_files, img_names = getImgList(read_path, suffix, reverse=False)  # 获取指定文件夹下的指定后缀名的图像文件
     assert len(img_files) >= 2, "need two images at least."
     #####################
     # 以下参数仅用于快速测试
-    # img_files = img_files[0:3]
-    isResize = True
-    scale = 0.5
-    #####################
-    PerArrs, Shapes = getPerArrsAndShapes(img_files, img_names, isResize, scale)  # 获取变换矩阵列表
-    min_left_bound, min_top_bound, max_right_bound, max_bottom_bound = getMaxBoundary(PerArrs, Shapes)  # 获取最终拼接图像的最大边界
-    new_width, new_height = (max_right_bound - min_left_bound + 1, max_bottom_bound - min_top_bound + 1)  # 计算拼接图像的宽和高
-
-    # 考虑图像超出负边界时要进行正向平移，下面计算平移所对应的透视变换矩阵
-    src_rect = np.float32([[min_left_bound, min_top_bound], [min_left_bound, max_bottom_bound],
-                           [max_right_bound, max_bottom_bound], [max_right_bound, min_top_bound]]).reshape(-1, 1, 2)
-    dst_rect = np.float32([[0, 0], [0, new_height - 1], [new_width - 1, new_height - 1], [new_width - 1, 0]]).reshape(
-        -1, 1, 2)
-    transArr = cv2.getPerspectiveTransform(src_rect, dst_rect)
-
-    mergeImg = None  # 用于保存拼接后的图像
-    count = 0
-    for img in img_generator(img_files, isResize, scale):
-        perArr = PerArrs_Mutiply(PerArrs, count)  # 透射变换矩阵的叠加连乘
-        perArr = np.dot(transArr, perArr)  # 计算平移时的透射变换矩阵
-
-        # 可选cv2.INTER_LINEAR，但可能会出现黑色边缘锯齿
-        # 使用cv2.WARP_INVERSE_MAP，则要求逆矩阵np.linalg.inv(perArr)
-        warpImg = cv2.warpPerspective(img, perArr, (new_width, new_height), flags=cv2.INTER_NEAREST)
-
-        if isShowImg:
-            Show_Img(warpImg, title="Transformed Img" + str(count))
-            # cv2.imwrite(save_path + "trans_img" + str(count) + suffix, warpImg)  # 保存变换后的图像
-
-        #######################################################################################################
-        # 通过调用getOverlayImg、getOverlayImg_Distance或getOverlayImg_Seam函数实现连续拼接
-        if count == 0:
-            mergeImg = np.copy(warpImg)
-        else:
-            # mergeImg = getOverlayImg(mergeImg, 0.5, warpImg, 0.5)       # 重叠区各取50%，过渡不自然
-            # mergeImg = getOverlayImg_Distance(mergeImg, warpImg)      # 按距离设置权重，过渡相对自然
-            mergeImg = getOverlayImg_Seam(mergeImg, warpImg)  # 最佳缝合线拼接
-        #######################################################################################################
-        count += 1
-
-    if isShowImg:
-        Show_Img(mergeImg, title="Merged Image", lastFlag=True)
-    if isSaveImg:
-        cv2.imwrite(save_path + "merged_img" + suffix, mergeImg)  # 保存拼接图像
-    return mergeImg
-
-
-# Processing one by one
-def getMosiacImageFlow(read_path, save_path="./", suffix=".jpg", isShowImg=False, isSaveImg=False):
-    img_files, img_names = getImgList(read_path, suffix, reverse=False)  # 获取指定文件夹下的指定后缀名的图像文件
-    assert len(img_files) >= 2, "need two images at least."
-    #####################
-    # 以下参数仅用于快速测试
-    img_files = img_files[0:3]
-    isResize = True
-    scale = 0.5
+    img_files = img_files[0:4]
+    scale = 1.0
     #####################
 
     mergeImg = None  # 用于保存当前拼接的图像
@@ -706,7 +725,7 @@ def getMosiacImageFlow(read_path, save_path="./", suffix=".jpg", isShowImg=False
     PerArrs = []
     Shapes = []
     priorArrs = [np.eye(3, dtype=np.float32)]
-    for img in img_generator(img_files, isResize, scale):
+    for img in img_generator(img_files, scale):
         if count > 0:
             per_arr = getTransformMatrix(priorImg, img_names[count - 1], img, img_names[count])
             PerArrs.append(per_arr)
@@ -718,8 +737,7 @@ def getMosiacImageFlow(read_path, save_path="./", suffix=".jpg", isShowImg=False
 
             # 考虑图像超出负边界时要进行正向平移，下面计算平移所对应的透视变换矩阵
             src_rect = np.float32([[min_left_bound, min_top_bound], [min_left_bound, max_bottom_bound],
-                                   [max_right_bound, max_bottom_bound], [max_right_bound, min_top_bound]]).reshape(-1,
-                                                                                                                   1, 2)
+                                   [max_right_bound, max_bottom_bound], [max_right_bound, min_top_bound]]).reshape(-1, 1, 2)
             dst_rect = np.float32(
                 [[0, 0], [0, new_height - 1], [new_width - 1, new_height - 1], [new_width - 1, 0]]).reshape(-1, 1, 2)
             transArr = cv2.getPerspectiveTransform(src_rect, dst_rect)
@@ -741,14 +759,14 @@ def getMosiacImageFlow(read_path, save_path="./", suffix=".jpg", isShowImg=False
 
             ############################################################################
             # 通过调用getOverlayImg、getOverlayImg_Distance或getgetOverlayImg_Seam函数实现连续拼接
-            # mergeImg = getOverlayImg(mergeImg, 0.5, warpImg, 0.5)       # 重叠区各取50%，过渡不自然
-            # mergeImg = getOverlayImg_Distance(mergeImg, warpImg)      # 按距离设置权重，过渡相对自然
-            mergeImg = getOverlayImg_Seam(mergeImg, warpImg)  # 最佳缝合线拼接
+            # mergeImg = getOverlayImg(mergeImg, 0.5, warpImg, 0.5)  # 重叠区各取50%，过渡不自然
+            mergeImg = getOverlayImg_Distance(mergeImg, warpImg)  # 按距离设置权重，过渡相对自然
+            # mergeImg = getOverlayImg_Seam(mergeImg, warpImg)  # 最佳缝合线拼接
             ############################################################################
 
             if isShowImg:
-                Show_Img(mergeImg, title="Merged Image" + str(count), lastFlag=True)
-                # cv2.imwrite(save_path + "merge_img" + str(count) + suffix, mergeImg)  # 保存拼接后的图像
+                Show_Img(cv2.medianBlur(mergeImg, 3), title="Merged Image" + str(count), lastFlag=True)
+                # cv2.imwrite(save_path + "merge_img" + str(count) + suffix, cv2.medianBlur(mergeImg, 3))  # 保存拼接后的图像
         else:
             mergeImg = np.copy(img)
             Shapes.append(img.shape)
@@ -757,14 +775,12 @@ def getMosiacImageFlow(read_path, save_path="./", suffix=".jpg", isShowImg=False
         count += 1
 
     if isSaveImg:
-        cv2.imwrite(save_path + "merged_img" + suffix, mergeImg)  # 保存拼接图像
+        cv2.imwrite(save_path + "merged_img" + suffix, cv2.medianBlur(mergeImg, 3))  # 保存拼接图像
     return mergeImg
 
 
 if __name__ == '__main__':
-    getReducedImages(read_path="../CV2_LEARN/Aerial_Images/Original_Image_Set/",
-                     save_path="../CV2_LEARN/Aerial_Images/New_Image_Set/", suffix=".JPG")
-    # mergeImg = getMosiacImage(read_path = "../CV2_LEARN/Aerial_Images/New_Image_Set/",
-    #                          save_path = "../CV2_LEARN/Aerial_Images/", suffix = ".JPG",isShowImg = False, isSaveImg = True)
-    # mergeImg = getMosiacImageFlow(read_path = "../CV2_LEARN/Aerial_Images/New_Image_Set/",
-    #                              save_path = "../CV2_LEARN/Aerial_Images/", suffix = ".JPG",isShowImg = False, isSaveImg = True)
+    # getReducedImages(read_path="../CV2_LEARN/Aerial_Images/Original_Image_Set/",
+    #                 save_path="../CV2_LEARN/Aerial_Images/New_Image_Set/", suffix=".JPG")
+    mergeImg = getMosiacImage(read_path="../CV2_LEARN/Aerial_Images/Original_Image_Set/",
+                              save_path="../CV2_LEARN/Aerial_Images/", suffix=".JPG", isShowImg=False, isSaveImg=True)

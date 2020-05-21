@@ -19,6 +19,7 @@
       <sourceFolder url="file://$MODULE_DIR$/offlineTask" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/identify" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/splice" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/compare" isTestSource="false" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.6 (UAV3.6)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
