@@ -90,7 +90,8 @@ class OfflineTaskAdmin(generic.BOAdmin):
                 for user in users:
                     if user.id == title.id:
                         print("start celery Process")
-                        mosiac_handle.delay(user.folderOriginPath, user.overDate, user.title_id)
+                        #mosiac_handle.delay(user.folderOriginPath, user.overDate, user.title_id)
+                        mosiac_handle(user.folderOriginPath, user.overDate, user.title_id)
                         #compare_handle.delay(user.id, pathImage, pathCsv)
                         print("Exitting celery Process")
                 queryset.update(splice_status='p',preprocess_status='p',identify_status = 'p')

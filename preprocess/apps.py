@@ -2,19 +2,25 @@ import pyexiv2
 import preprocess.image_preprocess as ipp
 import preprocess.image_dehaze as idh
 import splice.image_mosiac as ims
-from multiprocessing import Process, Event, Queue
 import os
 import cv2
 import numpy as np
+from multiprocessing import Process, Event, Queue
 from PIL import Image
-import django
 from offlineTask.models import SingleImagePreprocessInfo
 
 
 def saveSinglePreprocess(progress, userOverDate, userTitleId, imagePreprocessPath):
     singleImagePreprocess = SingleImagePreprocessInfo()
-    print(progress)
-    pass
+
+    singleImagePreprocess.titleId = userTitleId
+    singleImagePreprocess.imageOriginPath = imagePreprocessPath.replace('preprocess', 'origin')
+    singleImagePreprocess.imagePreprocessPath = imagePreprocessPath
+    singleImagePreprocess.overDate = userOverDate
+    singleImagePreprocess.progress = progress
+    singleImagePreprocess.is_preprocess = True
+    singleImagePreprocess.is_show = False
+    singleImagePreprocess.save()
 
 class load_process(Process):
     def __init__(self, name, numQ, loadedQ, num_evt, load_path, suffix=".jpg", is_brightness = True, is_dehaze=False):
@@ -83,9 +89,9 @@ class enhance_process(Process):
             self.enhancedQ.put((enhanced_img, img_name, gps_info))
             #cv2.imwrite(self.save_path + img_name, enhanced_img)
             cv2.imencode('.jpg', enhanced_img)[1].tofile(self.save_path + img_name)
-            saveSinglePreprocess(count/float(img_num), self.userOvredate, self.userTitleId, self.save_path + img_name)
             copy_img_exif(img_path, self.save_path + img_name)
             count += 1
+            saveSinglePreprocess(count / float(img_num), self.userOvredate, self.userTitleId, self.save_path + img_name)
             print("enhanced image : " + img_name)
         print("Exitting " + self.name + " Process")
 

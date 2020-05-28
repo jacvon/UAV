@@ -1,6 +1,4 @@
 import os
-import django
-django.setup()
 from ModelToSQL.celery import app
 from compare.image_comparison import single_compare_process, getImgList
 from multiprocessing import Process, Event, Queue
@@ -9,8 +7,8 @@ from ModelToSQL.settings import BASE_DIR
 from preprocess.apps import load_process, enhance_process
 from splice.apps import seam_process, transform_process
 
-@app.task(name='offlineTask.tasks.mosiac_handle')
-def mosiac_handle(originPath, userOverdate, userTitleId):
+#@app.task(name='offlineTask.tasks.mosiac_handle')
+def   mosiac_handle(originPath, userOverdate, userTitleId):
     print("start Mosiac Process")
     numQ = Queue(3)
     loadedQ = Queue(4)
@@ -34,7 +32,7 @@ def mosiac_handle(originPath, userOverdate, userTitleId):
     is_dehaze = False  # 若图像无雾使用会使图像变暗
     is_gamma = True  # 在图像偏亮或偏暗时用于校正
     is_clahe = True  # 若需增强图像对比度可进行直方图均衡化
-    is_each_save = False  # 保存每一步拼接过程的中间结果
+    is_each_save = True  # 保存每一步拼接过程的中间结果
 
     processes = []
     process_lp = load_process("Image_Load", numQ, loadedQ, num_evt, load_path, suffix, is_brightness, is_dehaze)
@@ -51,6 +49,7 @@ def mosiac_handle(originPath, userOverdate, userTitleId):
     process_sp.start()
     processes.append(process_sp)
 
+    """
     for p in processes:
         p.join()
 
@@ -58,6 +57,7 @@ def mosiac_handle(originPath, userOverdate, userTitleId):
     loadedQ.close()
     enhancedQ.close()
     transformedQ.close()
+    """
     print("Exitting Mosiac Process")
 
 @app.task(name='offlineTask.tasks.compare_handle')

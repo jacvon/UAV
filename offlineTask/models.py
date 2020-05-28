@@ -157,6 +157,7 @@ class SingleImageSpliceInfo(models.Model):
     progress = models.FloatField('', max_length=10,default='0')
     imagePreprocessPath = models.CharField('', max_length=1000)
     imageSplicePath = models.CharField('', max_length=1000)
+    gpsCsvPath = models.CharField(default='', max_length=1000)
     overDate = models.CharField('', max_length=45)
 
     class Meta:

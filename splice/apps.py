@@ -4,11 +4,21 @@ from multiprocessing import Process, Event, Queue
 import cv2
 import numpy as np
 
+from offlineTask.models import SingleImageSpliceInfo
 
 
-def saveSingleSplice(progress, userOverDate, userTitle, imageSplicePath):
-    print(progress,userOverDate, userTitle, imageSplicePath)
-    pass
+def saveSingleSplice(progress, userOverDate, userTitleId, imageSplicePath, gpsCsvPath):
+    singleImageSplice = SingleImageSpliceInfo()
+
+    singleImageSplice.titleId=userTitleId
+    singleImageSplice.progress = progress
+    singleImageSplice.overDate = userOverDate
+    singleImageSplice.is_show = False
+    singleImageSplice.is_splice = True
+    singleImageSplice.imageSplicePath = imageSplicePath
+    singleImageSplice.imagePreprocessPath = imageSplicePath.replace('splice', 'preprocess')
+    singleImageSplice.gpsCsvPath = gpsCsvPath
+    singleImageSplice.save()
 
 class transform_process(Process):
     def __init__(self, name, numQ, enhancedQ, transformedQ, num_evt):
@@ -110,7 +120,6 @@ class seam_process(Process):
         '''
         #cv2.imwrite(self.save_path + "merged_img" + self.suffix, cv2.medianBlur(merged_img, 3)) # 保存拼接图像
         cv2.imencode('.jpg', cv2.medianBlur(merged_img, 3))[1].tofile(self.save_path + "merged_img" + self.suffix)
-        saveSingleSplice(1, self.userOverdate, self.userTitleId, self.save_path + "merged_img" + self.suffix)
         with open(self.save_path + "gps_points.csv", mode='w', newline='') as file_handle:
             file_csv = csv.writer(file_handle)
             header = ['point_x', 'point_y', 'longitude', 'latitude', 'altitude']
@@ -120,6 +129,7 @@ class seam_process(Process):
                     item = [self.__gps_points[i][0], self.__gps_points[i][1], '{0:.8f}'.format(self.__gps_infos[i][0]),
                             '{0:.10f}'.format(self.__gps_infos[i][1]), self.__gps_infos[i][2]]
                     file_csv.writerow(item)
+        saveSingleSplice(1, self.userOverdate, self.userTitleId, self.save_path + "merged_img" + self.suffix, self.save_path + "gps_points.csv")
         print("Exitting " + self.name + " Process")
 
     def __getBeamImage(self, img_num):
@@ -144,12 +154,13 @@ class seam_process(Process):
                     #cv2.imwrite(self.save_path + "merging_img" + str(count) + self.suffix, cv2.medianBlur(mergeImg, 3))  # 保存拼接后的图像
                     cv2.imencode('.jpg', cv2.medianBlur(mergeImg, 3))[1].tofile(
                         self.save_path + "merging_img" + str(count) + self.suffix)
-                    saveSingleSplice(count/float(img_num), self.userOverdate, self.userTitleId,
-                                     self.save_path + "merging_img" + str(count) + self.suffix)
                 print("merged image : " + img_name)
             else:
                 mergeImg = np.copy(warpImg)
                 self.__gps_points = center_point
                 self.__gps_infos = gps_info
             count += 1
+            if count<img_num-1 :
+                saveSingleSplice(count / float(img_num), self.userOverdate, self.userTitleId,
+                                self.save_path + "merging_img" + str(count) + self.suffix, None)
         return mergeImg
