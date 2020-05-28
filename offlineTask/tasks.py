@@ -1,39 +1,24 @@
-from multiprocessing.process import current_process
-
+import os
+import django
+django.setup()
 from ModelToSQL.celery import app
-import os
-import shutil
-from ModelToSQL.settings import BASE_DIR
-from image_comparison import single_compare_process, getImgList
-from offlineTask.models import SingleImagePreprocessInfo, SingleImageIdentifyInfo, OfflineTask
-from multiprocessing import freeze_support, cpu_count
+from compare.image_comparison import single_compare_process, getImgList
 from multiprocessing import Process, Event, Queue
-import os
 import cv2
-import numpy as np
-import time
-
 from ModelToSQL.settings import BASE_DIR
 from preprocess.apps import load_process, enhance_process
 from splice.apps import seam_process, transform_process
 
 @app.task(name='offlineTask.tasks.mosiac_handle')
-def mosiac_handle(userId):
+def mosiac_handle(originPath, userOverdate, userTitleId):
     print("start Mosiac Process")
-    pathBegin = ''
-    users = OfflineTask.objects.all()
-    for user in users:
-        if user.id == int(userId):
-            pathBegin = user.folderOriginPath
-            break
-    print('原始图片路径'+ pathBegin)
     numQ = Queue(3)
     loadedQ = Queue(4)
     enhancedQ = Queue(4)
     transformedQ = Queue(4)
     num_evt = Event()
 
-    load_path = BASE_DIR.replace('\\','/') + "/static/upload/" + pathBegin
+    load_path = BASE_DIR.replace('\\','/') + "/static/upload/" + originPath
 
     enhance_save_path = load_path.replace('origin','preprocess')
 
@@ -55,14 +40,14 @@ def mosiac_handle(userId):
     process_lp = load_process("Image_Load", numQ, loadedQ, num_evt, load_path, suffix, is_brightness, is_dehaze)
     process_lp.start()
     processes.append(process_lp)
-    process_ep = enhance_process("Image_Enhance", userId, numQ, loadedQ, enhancedQ, num_evt, enhance_save_path, is_gamma,
+    process_ep = enhance_process("Image_Enhance",userOverdate, userTitleId,numQ, loadedQ, enhancedQ, num_evt, enhance_save_path, is_gamma,
                                  is_clahe)
     process_ep.start()
     processes.append(process_ep)
     process_tp = transform_process("Image_Transform", numQ, enhancedQ, transformedQ, num_evt)
     process_tp.start()
     processes.append(process_tp)
-    process_sp = seam_process("Image_Beam", userId, numQ, transformedQ, num_evt, merge_save_path, suffix, is_each_save)
+    process_sp = seam_process("Image_Beam",userOverdate, userTitleId,numQ, transformedQ, num_evt, merge_save_path, suffix, is_each_save)
     process_sp.start()
     processes.append(process_sp)
 
@@ -79,14 +64,6 @@ def mosiac_handle(userId):
 def compare_handle(userId, pathImage, pathCsv):
     input_path = ''
     PROCESS_NUM = 4
-    users = OfflineTask.objects.all()
-    singles = SingleImagePreprocessInfo.objects.all()
-    for user in users:
-        if user.id == int(userId):
-            for single in singles:
-                if single.overDate == user.overDate:
-                    input_path = single.imagePreprocessPath
-                    break
     output_path = input_path.replace('preprocess','compare')
     suffix = ".JPG"
 

@@ -124,7 +124,7 @@ class UploadForm(ModelForm):
         fields = ['imageUploadPath','imagesOriginPathList']
 
 class SingleImagePreprocessInfo(models.Model):
-    title = models.CharField(max_length=const.DB_CHAR_NAME_120)
+    titleId = models.IntegerField(default=None)
     is_preprocess = models.BooleanField(default=False)
     is_show = models.BooleanField(default=False)
     imageOriginPath = models.CharField('', max_length=10000)
@@ -136,8 +136,7 @@ class SingleImagePreprocessInfo(models.Model):
         verbose_name_plural = _('图片信息')
 
 class SingleImageIdentifyInfo(models.Model):
-    title = models.CharField(max_length=const.DB_CHAR_NAME_120)
-    singleImageId = models.IntegerField('')
+    titleId = models.IntegerField(default=None)
     is_confirm = models.BooleanField()
     is_identify = models.BooleanField(default=False)
     is_show = models.BooleanField(default=False)
@@ -152,8 +151,7 @@ class SingleImageIdentifyInfo(models.Model):
         verbose_name_plural = _('图片识别信息')
 
 class SingleImageSpliceInfo(models.Model):
-    title = models.CharField(max_length=const.DB_CHAR_NAME_120)
-    singleImageId = models.IntegerField('')
+    titleId = models.IntegerField(default=None)
     is_splice = models.BooleanField(default=False)
     is_show = models.BooleanField(default=False)
     progress = models.FloatField('', max_length=10,default='0')

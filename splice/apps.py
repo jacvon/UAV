@@ -5,6 +5,11 @@ import cv2
 import numpy as np
 
 
+
+def saveSingleSplice(progress, userOverDate, userTitle, imageSplicePath):
+    print(progress,userOverDate, userTitle, imageSplicePath)
+    pass
+
 class transform_process(Process):
     def __init__(self, name, numQ, enhancedQ, transformedQ, num_evt):
         Process.__init__(self)
@@ -68,10 +73,11 @@ class transform_process(Process):
 
 
 class seam_process(Process):
-    def __init__(self, name, useId, numQ, transformedQ, num_evt, save_path, suffix=".jpg", is_each_save=False):
+    def __init__(self, name, userOverdate, userTitleId, numQ, transformedQ, num_evt, save_path, suffix=".jpg", is_each_save=False):
         Process.__init__(self)
         self.name = name
-        self.useId = useId
+        self.userOverdate = userOverdate
+        self.userTitleId = userTitleId
         self.numQ = numQ
         self.transformedQ = transformedQ
         self.num_evt = num_evt
@@ -104,6 +110,7 @@ class seam_process(Process):
         '''
         #cv2.imwrite(self.save_path + "merged_img" + self.suffix, cv2.medianBlur(merged_img, 3)) # 保存拼接图像
         cv2.imencode('.jpg', cv2.medianBlur(merged_img, 3))[1].tofile(self.save_path + "merged_img" + self.suffix)
+        saveSingleSplice(1, self.userOverdate, self.userTitleId, self.save_path + "merged_img" + self.suffix)
         with open(self.save_path + "gps_points.csv", mode='w', newline='') as file_handle:
             file_csv = csv.writer(file_handle)
             header = ['point_x', 'point_y', 'longitude', 'latitude', 'altitude']
@@ -137,6 +144,8 @@ class seam_process(Process):
                     #cv2.imwrite(self.save_path + "merging_img" + str(count) + self.suffix, cv2.medianBlur(mergeImg, 3))  # 保存拼接后的图像
                     cv2.imencode('.jpg', cv2.medianBlur(mergeImg, 3))[1].tofile(
                         self.save_path + "merging_img" + str(count) + self.suffix)
+                    saveSingleSplice(count/float(img_num), self.userOverdate, self.userTitleId,
+                                     self.save_path + "merging_img" + str(count) + self.suffix)
                 print("merged image : " + img_name)
             else:
                 mergeImg = np.copy(warpImg)

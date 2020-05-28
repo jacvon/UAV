@@ -7,7 +7,14 @@ import os
 import cv2
 import numpy as np
 from PIL import Image
+import django
+from offlineTask.models import SingleImagePreprocessInfo
 
+
+def saveSinglePreprocess(progress, userOverDate, userTitleId, imagePreprocessPath):
+    singleImagePreprocess = SingleImagePreprocessInfo()
+    print(progress)
+    pass
 
 class load_process(Process):
     def __init__(self, name, numQ, loadedQ, num_evt, load_path, suffix=".jpg", is_brightness = True, is_dehaze=False):
@@ -47,9 +54,10 @@ class load_process(Process):
 
 
 class enhance_process(Process):
-    def __init__(self, name, useId, numQ, loadedQ, enhancedQ, num_evt, save_path, is_gamma=False, is_clahe=False):
+    def __init__(self, name, userOvredate, userTitleId, numQ, loadedQ, enhancedQ, num_evt, save_path, is_gamma=False, is_clahe=False):
         Process.__init__(self)
-        self.useId = useId
+        self.userOvredate = userOvredate
+        self.userTitleId = userTitleId
         self.name = name
         self.numQ = numQ
         self.loadedQ = loadedQ
@@ -75,6 +83,7 @@ class enhance_process(Process):
             self.enhancedQ.put((enhanced_img, img_name, gps_info))
             #cv2.imwrite(self.save_path + img_name, enhanced_img)
             cv2.imencode('.jpg', enhanced_img)[1].tofile(self.save_path + img_name)
+            saveSinglePreprocess(count/float(img_num), self.userOvredate, self.userTitleId, self.save_path + img_name)
             copy_img_exif(img_path, self.save_path + img_name)
             count += 1
             print("enhanced image : " + img_name)
