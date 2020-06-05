@@ -1,7 +1,7 @@
 import pyexiv2
 import preprocess.image_preprocess as ipp
 import preprocess.image_dehaze as idh
-import splice.image_mosiac as ims
+import splice.image_stitch as ims
 import os
 import cv2
 import numpy as np

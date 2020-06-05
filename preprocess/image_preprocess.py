@@ -1,9 +1,40 @@
-import cv2
+import cv2  #opencv-python==3.4.2.16, opencv-contrib-python==3.4.2.16
 import numpy as np
 from PIL import Image, ImageEnhance, ImageStat
 import matplotlib.pyplot as plt
 from numba import jit
+import os
+import pyexiv2
+import preprocess.image_dehaze as idh
+from offlineTask.models import SingleImagePreprocessInfo
 
+
+def saveSinglePreprocess(progress, userOverDate, userTitleId, imagePreprocessPath):
+    singleImagePreprocess = SingleImagePreprocessInfo()
+
+    singleImagePreprocess.titleId = userTitleId
+    singleImagePreprocess.imageOriginPath = imagePreprocessPath.replace('preprocess', 'origin')
+    singleImagePreprocess.imagePreprocessPath = imagePreprocessPath
+    singleImagePreprocess.overDate = userOverDate
+    singleImagePreprocess.progress = progress
+    singleImagePreprocess.is_preprocess = True
+    singleImagePreprocess.is_show = False
+    singleImagePreprocess.save()
+
+def getImgList(path, suffix=".jpg", reverse=False, sort_by_time=False):
+    assert os.path.isdir(path), "can't find image file path."
+    all_file_names = os.listdir(path)
+
+    name_list = [f for f in all_file_names if f.endswith(suffix)]
+    if sort_by_time:
+        # 按创建时间排序
+        name_list = sorted(name_list, key=lambda x: os.path.getmtime(os.path.join(path, x)), reverse=reverse)
+    else:
+        # 按文件名排序
+        name_list = sorted(name_list, reverse=reverse)
+
+    file_list = [os.path.join(path, name) for name in name_list]
+    return file_list, name_list
 
 # 自适应Gamma校正（图像偏亮或偏暗时可用）
 def gamma_trans(img, gamma=0.5):
@@ -88,6 +119,8 @@ def color_balance(img, low_clip=0.01, high_clip=0.99):
     for i in range(img.shape[2]):
         unique, counts = np.unique(img[:, :, i], return_counts=True)
         current = 0
+        high_val = 255
+        low_val = 0
         for u, c in zip(unique, counts):
             if float(current) / size < low_clip:
                 low_val = u
@@ -114,7 +147,7 @@ def single_scale_retinex(img, sigma=300):
 
 
 # 多尺度Retinex算法
-def multi_scale_retinex(img, sigma_list=[10, 50, 250]):
+def multi_scale_retinex(img, sigma_tuple=(10, 50, 250)):
     log_img = np.log(img / 255.0 + 0.001)
 
     def get_single_sub_retinex(img, log_img, sigma):
@@ -124,9 +157,9 @@ def multi_scale_retinex(img, sigma_list=[10, 50, 250]):
         return sub_retinex
 
     sum_retinex = np.zeros_like(img, dtype=np.float32)
-    for sigma in sigma_list:
+    for sigma in sigma_tuple:
         sum_retinex += get_single_sub_retinex(img, log_img, sigma)
-    exp_img = np.exp(sum_retinex / len(sigma_list))
+    exp_img = np.exp(sum_retinex / len(sigma_tuple))
     dst_img = cv2.normalize(exp_img, None, 0, 255, cv2.NORM_MINMAX)
     dst_img = cv2.convertScaleAbs(dst_img)
     dst_img = color_balance(dst_img)
@@ -134,7 +167,7 @@ def multi_scale_retinex(img, sigma_list=[10, 50, 250]):
 
 
 # 具有色彩恢复的多尺度Retinex算法(Multi-Scale Retinex with Color-Restoration)
-def MSRCR(img, sigma_list=[10, 50, 250], gain=5, offset=25, alpha=125, beta=46):
+def MSRCR(img, sigma_tuple=(10, 50, 250), gain=5, offset=25, alpha=125, beta=46):
     img = np.float64(img)
 
     def get_single_sub_retinex(img, log_img, sigma):
@@ -146,7 +179,7 @@ def MSRCR(img, sigma_list=[10, 50, 250], gain=5, offset=25, alpha=125, beta=46):
     def get_multi_sub_retinex(img, sigma_list):
         log_img = np.log(img / 255.0 + 0.001)
         sub_retinex = np.zeros_like(img, dtype=np.float32)
-        for sigma in sigma_list:
+        for sigma in sigma_tuple:
             sub_retinex += get_single_sub_retinex(img, log_img, sigma)
         sub_retinex = sub_retinex / len(sigma_list)
         return sub_retinex
@@ -156,7 +189,7 @@ def MSRCR(img, sigma_list=[10, 50, 250], gain=5, offset=25, alpha=125, beta=46):
         color = beta * (np.log10(alpha * img + 1.0) - np.log10(img_sum + 1.0))
         return color
 
-    sub_retinex = get_multi_sub_retinex(img, sigma_list)
+    sub_retinex = get_multi_sub_retinex(img, sigma_tuple)
     exp_img = np.exp(sub_retinex)
     cr = color_restoration(img, alpha, beta)
     dst_img = gain * (exp_img * cr + offset)
@@ -210,11 +243,13 @@ def set_brightness(img_pil, ref_brightness):
 # 批量均衡图像亮度
 def uniform_brightness(img_paths):
     avg_brightness = get_avg_brightness(img_paths)
+    imgs = []
     for path in img_paths:
         img = Image.open(path)
         cur_brightness = get_brightness_from_img(img)
         img = ImageEnhance.Brightness(img).enhance(avg_brightness / cur_brightness)
-    return img
+        imgs.append(img)
+    return imgs
 
 
 ######################################################
@@ -310,6 +345,18 @@ def WhiteBlance(img, mode=1):
 
 ######################################################
 
+def copy_img_exif(src_file, dest_file):
+    try:
+        src_img = pyexiv2.Image(src_file, encoding='gbk')
+        dest_img = pyexiv2.Image(dest_file, encoding='gbk')
+        # dest_img.modify_exif(src_img.read_exif())
+        dest_img.modify_exif({"Exif.GPSInfo.GPSLongitude": src_img.read_exif().get("Exif.GPSInfo.GPSLongitude")})
+        dest_img.modify_exif({"Exif.GPSInfo.GPSLatitude": src_img.read_exif().get("Exif.GPSInfo.GPSLatitude")})
+        dest_img.modify_exif({"Exif.GPSInfo.GPSAltitude": src_img.read_exif().get("Exif.GPSInfo.GPSAltitude")})
+    except Exception as e:
+        print("ERROR:", e)
+        print("图像文件" + dest_file + "的EXIF属性修改操作失败！")
+
 
 def Show_Img(img, title="", lastFlag=False):  # 直接绘制图像，用于调试
     if len(img.shape) == 3:
@@ -329,7 +376,7 @@ def Show_Img(img, title="", lastFlag=False):  # 直接绘制图像，用于调�
 
 
 if __name__ == '__main__':
-    src = cv2.imread("./img/DJI_0008.JPG")
+    src = cv2.imread("./Original_Image_Set/img_test/DJI_0008.JPG")
     # src = cv2.resize(src, None, fx=0.1, fy=0.1, interpolation=cv2.INTER_AREA)
 
     # 高斯滤波去噪
@@ -353,9 +400,43 @@ if __name__ == '__main__':
 
     # dest = WhiteBlance(src, mode=1)
 
-    templete = cv2.imread("./img/DJI_0012.JPG")
+    templete = cv2.imread("./Original_Image_Set/img_test/DJI_0012.JPG")
     dest = hist_match(src, templete)
-    # cv2.imwrite('./img/test_hist_match.JPG',dest)
+    # cv2.imwrite('./Original_Image_Set/img_test/test_hist_match.JPG',dest)
 
     contrast = np.hstack((src, dest))
     Show_Img(contrast, title="contrast", lastFlag=True)
+
+def preprocess_handle(load_path, save_path, userOverdate, userTitleId, suffix=".jpg", is_brightness=True, is_dehaze=False, is_gamma=False, is_clahe=False):
+    img_paths, img_names = getImgList(load_path, suffix, reverse=False)
+    brightness_avg = None
+    if is_brightness:
+        brightness_avg = get_avg_brightness(img_paths)
+
+    print("Start images preprocess.")
+    for index, img_path in enumerate(img_paths):
+        #loaded_img = cv2.imread(img_path)
+        loaded_img = cv2.imdecode(np.fromfile(img_path, dtype=np.uint8), 1)
+        if is_dehaze:
+            loaded_img = idh.dehaze(loaded_img, size=9, bGamma=False)
+
+        if is_brightness and brightness_avg is not None:
+            pil_img = Image.fromarray(cv2.cvtColor(loaded_img, cv2.COLOR_BGR2RGB))
+            pil_img = set_brightness(pil_img, brightness_avg)
+            loaded_img = np.asarray(pil_img)
+            loaded_img = cv2.cvtColor(loaded_img, cv2.COLOR_RGB2BGR)
+
+        if is_gamma:
+            loaded_img = gamma_trans(loaded_img, gamma=0.5)
+        if is_clahe:
+            loaded_img = hist_equal_CLAHE(loaded_img, clipLimit=1.0, tileGridSize=(9, 9))
+
+        img_name = os.path.basename(img_path)
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        #cv2.imwrite(save_path + img_name, loaded_img)
+        cv2.imencode('.jpg', loaded_img)[1].tofile(save_path + img_name)
+        copy_img_exif(img_path, save_path + img_name)
+        saveSinglePreprocess(index+1 / float(len(img_paths)), userOverdate, userTitleId, save_path + img_name)
+        print("preprocess image:", img_name)
+    print("End images preprocess.")

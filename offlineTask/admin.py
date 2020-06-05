@@ -1,21 +1,12 @@
 # coding=utf-8
 import os
-
 from django.contrib import admin
 from django.utils.html import format_html
-from numpy.core.defchararray import strip
-from pip._vendor.distlib._backport import shutil
-
-from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR
-#from splice.app import handleSplice
-#from identify.app import handleIdentify
-from offlineTask.tasks import mosiac_handle, compare_handle
+from offlineTask.tasks import mosiac_handle
 from common import generic
-from offlineTask.models import OfflineTask, SingleImagePreprocessInfo, UploadForm, OfflineMapManage
+from offlineTask.models import OfflineTask, SingleImagePreprocessInfo, UploadForm, OfflineMapManage, \
+    OfflinePreprocessSet
 import datetime
-from identify.tasks import handleIdentify
-from splice.tasks import handleSplice
-#from App.detect_project.predict_my import func_predict
 
 class OfflineTaskAdmin(generic.BOAdmin):
 
@@ -71,10 +62,13 @@ class OfflineTaskAdmin(generic.BOAdmin):
     list_display = ['begin', 'title', identify_status, splice_status, preprocess_status, comparison_status]
     list_display_links = ['title']
     list_filter = ['title']
-    #search_fields = ['title']
-    fields = (
-        ('title'),('description'),('imageUploadPath')
-    )
+
+    fieldsets = [
+        ('基础配置', {'fields':['title','description','imageUploadPath']}),
+        ('可选配置', {'fields':['preprocessSet','isIdentify','isIdentifyPre','isSplice','isSplicePre','isCompare','isComparePre','comparePath']}),
+        #('可选配置', {'fields':['preprocessSet','isIdentify','isIdentifyPre','isSplice','isSplicePre','isCompare','isComparePre']}),
+    ]
+
     form = UploadForm
     actions = ['image_todo']
     date_hierarchy = 'begin'
@@ -89,11 +83,11 @@ class OfflineTaskAdmin(generic.BOAdmin):
             for title in queryset:
                 for user in users:
                     if user.id == title.id:
-                        print("start celery Process")
+                        print("start mosiac_handle Process")
                         #mosiac_handle.delay(user.folderOriginPath, user.overDate, user.title_id)
-                        mosiac_handle(user.folderOriginPath, user.overDate, user.title_id)
+                        mosiac_handle(user.id)
                         #compare_handle.delay(user.id, pathImage, pathCsv)
-                        print("Exitting celery Process")
+                        print("Exitting mosiac_handle Process")
                 queryset.update(splice_status='p',preprocess_status='p',identify_status = 'p')
     image_todo.short_description = "开始处理"
 
@@ -108,5 +102,17 @@ class OfflineMapManageAdmin(admin.ModelAdmin):
     )
     date_hierarchy = 'addTime'
 
+class OfflinePreprocessSetAdmin(admin.ModelAdmin):
+    list_per_page = 10
+    actions_on_bottom = True
+    actions_on_top = False
+    list_display = ['addTime','setNickName','is_brightness','is_dehaze','is_gamma','is_clahe']
+    list_display_links = ['setNickName']
+    fields = (
+        ('setNickName'), ('is_brightness'),('is_dehaze'),('is_gamma'),('is_clahe')
+    )
+    date_hierarchy = 'addTime'
+
 admin.site.register(OfflineTask, OfflineTaskAdmin)
 admin.site.register(OfflineMapManage, OfflineMapManageAdmin)
+admin.site.register(OfflinePreprocessSet, OfflinePreprocessSetAdmin)

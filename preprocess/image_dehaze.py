@@ -1,4 +1,4 @@
-import cv2
+import cv2  #opencv-python==3.4.2.16, opencv-contrib-python==3.4.2.16
 import numpy as np
 from numba import jit
 
@@ -180,8 +180,8 @@ def fastGuidedfilter(guide, src, r, eps, scale=0.25):
     b = mean_p - a * mean_I
     mean_a = cv2.boxFilter(a, cv2.CV_32F, (r_, r_))
     mean_b = cv2.boxFilter(b, cv2.CV_32F, (r_, r_))
-    mean_A = cv2.resize(mean_a, (guide.shape[1], guide.shape[0]), interpolation=cv2.INTER_AREA)
-    mean_B = cv2.resize(mean_b, (guide.shape[1], guide.shape[0]), interpolation=cv2.INTER_AREA)
+    mean_A = cv2.resize(mean_a, (guide.shape[1], guide.shape[0]), interpolation=cv2.INTER_LINEAR)
+    mean_B = cv2.resize(mean_b, (guide.shape[1], guide.shape[0]), interpolation=cv2.INTER_LINEAR)
     res = mean_A * guide + mean_B
     return res
 
@@ -248,9 +248,9 @@ if __name__ == '__main__':
 
     size = 9
     bGamma = True
-    src = cv2.imread("./img/canon.bmp")
+    src = cv2.imread("./Original_Image_Set/img_test/canon.bmp")
     # src = cv2.resize(src, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA)
     dest = dehaze(src, size, bGamma)
     contrast = np.hstack((src, dest))
-    cv2.imwrite('./img/canon_dehaze.jpg', dest)
+    cv2.imwrite('./Original_Image_Set/img_test/canon_dehaze.jpg', dest)
     cv2.imshow("contrast", contrast)

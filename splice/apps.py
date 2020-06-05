@@ -1,5 +1,5 @@
 import csv
-import splice.image_mosiac as ims
+import splice.image_stitch as ims
 from multiprocessing import Process, Event, Queue
 import cv2
 import numpy as np
