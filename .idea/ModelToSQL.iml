@@ -21,7 +21,7 @@
       <sourceFolder url="file://$MODULE_DIR$/splice" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/compare" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.6 (python36)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.6 (python36_tensorgpu1120)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="R User Library" level="project" />
     <orderEntry type="library" name="R Skeletons" level="application" />

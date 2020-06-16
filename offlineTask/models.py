@@ -177,7 +177,7 @@ class OfflineTask(generic.BO):
     isSplicePre = models.BooleanField(_("拼接是否预处理"),blank=True, null=False, max_length=const.DB_CHAR_CODE_2,default=True)
     isCompare = models.BooleanField(_("是否比对"),blank=True, null=False, max_length=const.DB_CHAR_CODE_2,default=True)
     isComparePre = models.BooleanField(_("比对是否预处理"),blank=True, null=False, max_length=const.DB_CHAR_CODE_2,default=True)
-    comparePath = models.ForeignKey(SingleImageSpliceInfo, verbose_name=u'比对源文件',on_delete=models.CASCADE, help_text=u'请选择任务')
+    comparePath = models.ForeignKey(SingleImageSpliceInfo, verbose_name=u'比对源文件',on_delete=models.CASCADE, help_text=u'请选择任务',blank=True, null=True)
     preprocessSet = models.ForeignKey(OfflinePreprocessSet, verbose_name=u'预处理配置选择', on_delete=models.CASCADE, help_text=u'请选择配置')
 
     def save(self, *args, **kwargs):
