@@ -85,7 +85,7 @@ class OfflineTaskAdmin(generic.BOAdmin):
                     if user.id == title.id:
                         print("start mosiac_handle Process")
                         #mosiac_handle.delay(user.folderOriginPath, user.overDate, user.title_id)
-                        mosiac_handle(user.id)
+                        mosiac_handle(user.id, queryset)
                         #compare_handle.delay(user.id, pathImage, pathCsv)
                         print("Exitting mosiac_handle Process")
                 queryset.update(splice_status='p',preprocess_status='p',identify_status = 'p')

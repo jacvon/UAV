@@ -11,7 +11,7 @@ from preprocess.apps import load_process, enhance_process
 from splice.apps import seam_process, transform_process
 
 #@app.task(name='offlineTask.tasks.mosiac_handle')
-def mosiac_handle(userId):
+def mosiac_handle(userId, queryset):
     print("start Mosiac Process")
     compareInputPath = ''
     identifyInputPath = ''
@@ -33,16 +33,20 @@ def mosiac_handle(userId):
                                          user.overDate, user.title_id, ".JPG",
                                          preprocessSet.is_brightness, preprocessSet.is_dehaze, preprocessSet.is_gamma,
                                          preprocessSet.is_clahe)
+                       queryset.update(preprocess_status='p')
                        compareInputPath = originPath.replace('origin','preprocess')
                        identifyInputPath = originPath.replace('origin','preprocess')
                        spliceInputPath = originPath.replace('origin','preprocess')
 
             if user.isIdentify:
+                queryset.update(identify_status='p')
                 print('处理识别')
             if user.isSplice:
+                queryset.update(splice_status='p')
                 splice_handle(spliceInputPath,spliceInputPath.replace('preprocess','splice'),
                               user.overDate, user.title_id)
             if user.isCompare:
+                queryset.update(comparison_status='p')
                 splices = SingleImageSpliceInfo.objects.all()
                 for splice in splices:
                     if splice.id == user.comparePath_id:

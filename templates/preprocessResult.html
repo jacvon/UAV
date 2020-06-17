@@ -9,7 +9,7 @@
 
 {% block bodyclass %}{{ block.super }} dashboard{% endblock %}
 {% block title %}
-    预处理结果｜登陆后台系统
+    预处理结果｜后台管理系统
 {% endblock %}
 {% block branding %}
     <h1 id="site-name"><a href="{% url 'admin:index' %}">无人机项目管理系统</a></h1>
@@ -22,7 +22,7 @@
 {% endblock %}
 
 {% block content %}
-    {% if singleImages%}
+    {% if singlePreprocessImages%}
         <h1>请查看预处理结果</h1>
         {% for singlePreprocessImage in singlePreprocessImages %}
         <table><tr>
@@ -33,14 +33,24 @@
                 <h1>预处理结果</h1>
                 <img width="500px" height="500px" src="{{ singlePreprocessImage.icon_preprocessUrl }}" alt="{{ singlePreprocessImage.singleImageName }}" border=0></td>
         </tr></table>
-        <form action="{% url 'offlineTask:preprocessConfirm' userId=singlePreprocessImage.userId singlePreprocessImageId=singlePreprocessImage.singlePreprocessImageId %}" method="post" enctype="multipart/form-data" >
+        <form action="{% url 'offlineTask:preprocessConfirm' userId=singlePreprocessImage.userId singlePreprocessImageId=singlePreprocessImage.singleImagePreprocessId %}" method="post" enctype="multipart/form-data" >
             {% csrf_token %}
-            <input type="submit" value="确定" name="predict_confirm">
-            <input type="submit" value="拒绝" name="predict_cancel">
+            <input type="submit" value="上一张" name="predict_pre">
+            <input type="submit" value="下一张" name="predict_next">
         </form>
         {% endfor %}
     {% else %}
-        <h1>已完成该离线识别任务</h1>
+        {% for singlePreprocesshint in singlePreprocesshints %}
+            {% if singlePreprocesshint.isNext is None or singlePreprocesshint.isNext %}
+                <h1>已完成当前预处理任务</h1>
+            {% else %}
+                <h1>请点击下一张查看</h1>
+                <form action="{% url 'offlineTask:preprocessConfirm' userId=singlePreprocesshint.userId singlePreprocessImageId=singlePreprocesshint.singleImagePreprocessId%}" method="post" enctype="multipart/form-data" >
+                    {% csrf_token %}
+                    <input type="submit" value="下一张" name="predict_next">
+                </form>
+            {% endif %}
+        {% endfor %}
     {% endif %}
 {% endblock %}
 

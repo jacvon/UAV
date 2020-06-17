@@ -52,20 +52,25 @@ def spliceHtmlImages(resultId):
     )
     return context
 
-def preprocessHtmlImages(resultId):
+def preprocessHtmlImages(resultId, singlePreprocessImageId, isNext):
     users = OfflineTask.objects.all()
 
     singleImagePreprocesss = SingleImagePreprocessInfo.objects.all()
     singlePreprocessImage_dict = {}
+    singlePreprocesshint_dict = {}
+    isAllShown = True
 
     for user in users:
         if user.id == int(resultId):
             for singleImagePreprocess in singleImagePreprocesss:
-                if singleImagePreprocess.overDate == user.overDate:
+                if singleImagePreprocess.overDate == user.overDate and \
+                        ((singlePreprocessImageId != None and singleImagePreprocess.id == int(singlePreprocessImageId))
+                                or (singlePreprocessImageId == None and singleImagePreprocess.is_show == False)):
+                    isAllShown = False
                     singlePreprocessImage_dict[singleImagePreprocess.id] = {
                         "userId": user.id,
                         "singleImagePreprocessId": singleImagePreprocess.id,
-                        "singleImageName": singleImagePreprocess.title,
+                        "singleImageName": singleImagePreprocess.titleId,
                         "icon_preprocessUrl": "/static/upload/" + singleImagePreprocess.imagePreprocessPath,
                         "icon_originUrl": "/static/upload/" + singleImagePreprocess.imageOriginPath,
                     }
@@ -75,10 +80,18 @@ def preprocessHtmlImages(resultId):
                     singleImagePreprocess.is_show = True
                     singleImagePreprocess.save()
                     break
+            if  isAllShown:
+                singlePreprocesshint_dict[user.id] = {
+                    "isNext": isNext,
+                    "singleImagePreprocessId": singlePreprocessImageId,
+                    "userId": int(resultId),
+                }
             break
     singlePreprocessImage_list = list(six.itervalues(singlePreprocessImage_dict))
+    singlePreprocesshint_list = list(six.itervalues(singlePreprocesshint_dict))
     context = dict(
         singlePreprocessImages=singlePreprocessImage_list,
+        singlePreprocesshints= singlePreprocesshint_list,
     )
     return context
 
@@ -144,10 +157,17 @@ def identifyConfirm(request, userId,singleImageIdentifyId):
     context = identifyHtmlImages(userId)
     return render(request, 'identifyResult.html', context)
 
-def preprocessConfirm(request,userId, singlePreprocessImageId):
-    print(userId)
-    print(singlePreprocessImageId)
-    return None
+def preprocessConfirm(request, userId, singlePreprocessImageId):
+    isNext = None
+    singlePreprocessImageIdInt = 0
+    if 'predict_next' in request.POST:
+        singlePreprocessImageIdInt = int(singlePreprocessImageId) + 1
+        isNext = True
+    elif 'predict_pre' in request.POST:
+        singlePreprocessImageIdInt = int(singlePreprocessImageId) - 1
+        isNext = False
+    context = preprocessHtmlImages(userId, singlePreprocessImageIdInt, isNext)
+    return render(request, 'preprocessResult.html', context)
 
 def spliceConfirm(request,userId,singleSpliceImageId):
     print(userId)
@@ -166,8 +186,8 @@ def spliceResult(request,resultId):
 
 def preprocessResult(request,resultId):
     print(resultId)
-    context = preprocessHtmlImages(resultId)
-    return render(request, 'identifyResult.html', context)
+    context = preprocessHtmlImages(resultId,None,None)
+    return render(request, 'preprocessResult.html', context)
 
 @login_required
 @csrf_exempt
