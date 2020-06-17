@@ -42,7 +42,11 @@
     {% else %}
         {% for singlePreprocesshint in singlePreprocesshints %}
             {% if singlePreprocesshint.isNext is None or singlePreprocesshint.isNext %}
-                <h1>已完成当前预处理任务</h1>
+                <h1>已完成当前预处理任务,点击查看上一张</h1>
+                <form action="{% url 'offlineTask:preprocessConfirm' userId=singlePreprocesshint.userId singlePreprocessImageId=singlePreprocesshint.singleImagePreprocessId%}" method="post" enctype="multipart/form-data" >
+                    {% csrf_token %}
+                    <input type="submit" value="上一张" name="predict_pre">
+                </form>
             {% else %}
                 <h1>请点击下一张查看</h1>
                 <form action="{% url 'offlineTask:preprocessConfirm' userId=singlePreprocesshint.userId singlePreprocessImageId=singlePreprocesshint.singleImagePreprocessId%}" method="post" enctype="multipart/form-data" >

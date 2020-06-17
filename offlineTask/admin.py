@@ -29,7 +29,7 @@ class OfflineTaskAdmin(generic.BOAdmin):
             return '已完成'
         elif self.splice_status == 'p':
             url = '/admin/offlineTask/spliceResult/%s/' % (self.id)  # 跳转的超链接
-            url_text = '请确认拼接结果'  # 显示的文本
+            url_text = '正在拼接'  # 显示的文本
             return format_html(u'<a href="{}" target="_blank">{}</a>'.format(url, url_text))
     splice_status.allow_tags = True
     splice_status.short_description = '拼接状态'
@@ -38,10 +38,12 @@ class OfflineTaskAdmin(generic.BOAdmin):
         if self.preprocess_status == 'u':
             return '未处理'
         elif self.preprocess_status == 'd':
-            return '已完成'
+            url = '/admin/offlineTask/preprocessResult/%s/' % (self.id)  # 跳转的超链接
+            url_text = '已完成'  # 显示的文本
+            return format_html(u'<a href="{}" target="_blank">{}</a>'.format(url, url_text))
         elif self.preprocess_status == 'p':
             url = '/admin/offlineTask/preprocessResult/%s/' % (self.id)  # 跳转的超链接
-            url_text = '请查看预处理结果'  # 显示的文本
+            url_text = '正在预处理'  # 显示的文本
             return format_html(u'<a href="{}" target="_blank">{}</a>'.format(url, url_text))
     preprocess_status.allow_tags = True
     preprocess_status.short_description = '预处理状态'

@@ -9,7 +9,7 @@
 
 {% block bodyclass %}{{ block.super }} dashboard{% endblock %}
 {% block title %}
-    预处理结果｜登陆后台系统
+    拼接结果｜后台管理系统
 {% endblock %}
 {% block branding %}
     <h1 id="site-name"><a href="{% url 'admin:index' %}">无人机项目管理系统</a></h1>
@@ -22,25 +22,20 @@
 {% endblock %}
 
 {% block content %}
-    {% if singleImages%}
-        <h1>请确认拼接结果</h1>
+    {% if singleSpliceImages%}
+        <h1>请查看拼接结果</h1>
         {% for singleSpliceImage in singleSpliceImages %}
-        <table><tr>
-            <td>
-                <h1>原图</h1>
-                <img width="500px" height="500px" src="{{ singleSpliceImage.icon_preprocessUrl }}" alt="{{ singleSpliceImage.singleImageName }}" border=0></td>
-            <td>
-                <h1>识别结果</h1>
-                <img width="500px" height="500px" src="{{ singleSpliceImage.icon_spliceUrl }}" alt="{{ singleSpliceImage.singleImageName }}" border=0></td>
-        </tr></table>
-        <form action="{% url 'offlineTask:spliceConfirm' userId=singleSpliceImage.userId singleSpliceImageId=singleSpliceImage.singleImageSpliceId %}" method="post" enctype="multipart/form-data" >
-            {% csrf_token %}
-            <input type="submit" value="确定" name="predict_confirm">
-            <input type="submit" value="拒绝" name="predict_cancel">
-        </form>
+            {% if singleSpliceImage.icon_spliceUrl%}
+                <table><tr>
+                <td>
+                    <img width="1000px" height="800px" src="{{ singleSpliceImage.icon_spliceUrl }}" alt="{{ singleSpliceImage.singleImageName }}" border=0></td>
+                </tr></table>
+            {% else %}
+                <h1>正在进行离线识别任务，请稍后...</h1>
+            {% endif %}
         {% endfor %}
     {% else %}
-        <h1>已完成该离线识别任务</h1>
+        <h1>正在进行离线识别任务，请稍后...</h1>
     {% endif %}
 {% endblock %}
 

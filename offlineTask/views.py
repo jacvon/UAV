@@ -35,8 +35,7 @@ def spliceHtmlImages(resultId):
                     singleSpliceImage_dict[singleImageSpliceInfo.id] = {
                         "userId": user.id,
                         "singleImageSpliceId": singleImageSpliceInfo.id,
-                        "singleImageName": singleImageSpliceInfo.title,
-                        "icon_preprocessUrl": "/static/upload/" + singleImageSpliceInfo.imagePreprocessPath,
+                        "singleImageName": singleImageSpliceInfo.titleId,
                         "icon_spliceUrl": "/static/upload/" + singleImageSpliceInfo.imageSplicePath,
                     }
                     if singleImageSpliceInfo.progress == 1:
@@ -65,7 +64,7 @@ def preprocessHtmlImages(resultId, singlePreprocessImageId, isNext):
             for singleImagePreprocess in singleImagePreprocesss:
                 if singleImagePreprocess.overDate == user.overDate and \
                         ((singlePreprocessImageId != None and singleImagePreprocess.id == int(singlePreprocessImageId))
-                                or (singlePreprocessImageId == None and singleImagePreprocess.is_show == False)):
+                                or singlePreprocessImageId is None):
                     isAllShown = False
                     singlePreprocessImage_dict[singleImagePreprocess.id] = {
                         "userId": user.id,
@@ -180,12 +179,10 @@ def identifyResult(request,resultId):
     return render(request, 'identifyResult.html', context)
 
 def spliceResult(request,resultId):
-    print(resultId)
     context = spliceHtmlImages(resultId)
     return render(request, 'spliceResult.html', context)
 
 def preprocessResult(request,resultId):
-    print(resultId)
     context = preprocessHtmlImages(resultId,None,None)
     return render(request, 'preprocessResult.html', context)
 
