@@ -10,7 +10,7 @@ from django.utils import six
 from django.views.decorators.csrf import csrf_exempt
 
 from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR, WEB_HOST_MEDIA_URL
-from offlineTask.models import OfflineTask, SingleImagePreprocessInfo, SingleImageIdentifyInfo, SingleImageSpliceInfo
+from offlineTask.models import OfflineTask, SingleImagePreprocessInfo, SingleImageIdentifyInfo, SingleImageSpliceInfo, SingleImageCompareInfo
 
 
 def copy(path,path1):                       #path原文件地址，path1指定地址
@@ -84,6 +84,7 @@ def preprocessHtmlImages(resultId, singlePreprocessImageId, isNext):
                     "isNext": isNext,
                     "singleImagePreprocessId": singlePreprocessImageId,
                     "userId": int(resultId),
+                    "userStatus": user.preprocess_status
                 }
             break
     singlePreprocessImage_list = list(six.itervalues(singlePreprocessImage_dict))
@@ -91,6 +92,51 @@ def preprocessHtmlImages(resultId, singlePreprocessImageId, isNext):
     context = dict(
         singlePreprocessImages=singlePreprocessImage_list,
         singlePreprocesshints= singlePreprocesshint_list,
+    )
+    return context
+
+def comparisonHtmlImages(resultId, singleCompareImageId, isNext):
+    users = OfflineTask.objects.all()
+
+    singleImageCompareInfos = SingleImageCompareInfo.objects.all()
+    singleCompareImage_dict = {}
+    singleComparehint_dict = {}
+    isAllShown = True
+
+    for user in users:
+        if user.id == int(resultId):
+            for singleImageCompareInfo in singleImageCompareInfos:
+                if singleImageCompareInfo.overDate == user.overDate and \
+                        ((singleCompareImageId != None and singleImageCompareInfo.id == int(singleCompareImageId))
+                                or singleCompareImageId is None):
+                    isAllShown = False
+                    singleCompareImage_dict[singleImageCompareInfo.id] = {
+                        "userId": user.id,
+                        "singleImageCompareId": singleImageCompareInfo.id,
+                        "singleImageName": singleImageCompareInfo.titleId,
+                        "icon_originPartUrl": "/static/upload/" + singleImageCompareInfo.imageComOriginPartPath,
+                        "icon_originPanoUrl": "/static/upload/" + singleImageCompareInfo.imageComOriginPanoPath,
+                        "icon_originResultUrl": "/static/upload/" + singleImageCompareInfo.imageComOriginResultPath,
+                    }
+                    if singleImageCompareInfo.progress == 1:
+                        user.comparison_status = 'd'
+                        user.save()
+                    singleImageCompareInfo.is_show = True
+                    singleImageCompareInfo.save()
+                    break
+            if  isAllShown:
+                singleComparehint_dict[user.id] = {
+                    "isNext": isNext,
+                    "singleImageCompareId": singleCompareImageId,
+                    "userId": int(resultId),
+                    "userStatus": user.comparison_status
+                }
+            break
+    singleCompareImage_list = list(six.itervalues(singleCompareImage_dict))
+    singleComparehint_list = list(six.itervalues(singleComparehint_dict))
+    context = dict(
+        singleCompareImages=singleCompareImage_list,
+        singleComparehints= singleComparehint_list,
     )
     return context
 
@@ -168,6 +214,18 @@ def preprocessConfirm(request, userId, singlePreprocessImageId):
     context = preprocessHtmlImages(userId, singlePreprocessImageIdInt, isNext)
     return render(request, 'preprocessResult.html', context)
 
+def comparisonConfirm(request, userId, singleComparisonImageId):
+    isNext = None
+    singleCompareImageIdInt = 0
+    if 'predict_next' in request.POST:
+        singleCompareImageIdInt = int(singleComparisonImageId) + 1
+        isNext = True
+    elif 'predict_pre' in request.POST:
+        singleCompareImageIdInt = int(singleComparisonImageId) - 1
+        isNext = False
+    context = preprocessHtmlImages(userId, singleCompareImageIdInt, isNext)
+    return render(request, 'preprocessResult.html', context)
+
 def spliceConfirm(request,userId,singleSpliceImageId):
     print(userId)
     print(singleSpliceImageId)
@@ -185,6 +243,10 @@ def spliceResult(request,resultId):
 def preprocessResult(request,resultId):
     context = preprocessHtmlImages(resultId,None,None)
     return render(request, 'preprocessResult.html', context)
+
+def comparisonResult(request,resultId):
+    context = comparisonHtmlImages(resultId,None,None)
+    return render(request, 'comparisonResult.html', context)
 
 @login_required
 @csrf_exempt

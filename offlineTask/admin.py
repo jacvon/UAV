@@ -52,9 +52,13 @@ class OfflineTaskAdmin(generic.BOAdmin):
         if self.comparison_status == 'u':
             return '未比对'
         elif self.comparison_status == 'd':
-            return '已完成'
+            url = '/admin/offlineTask/comparisonResult/%s/' % (self.id)  # 跳转的超链接
+            url_text = '已完成'  # 显示的文本
+            return format_html(u'<a href="{}" target="_blank">{}</a>'.format(url, url_text))
         elif self.comparison_status == 'p':
-            return '正在比对'
+            url = '/admin/offlineTask/comparisonResult/%s/' % (self.id)  # 跳转的超链接
+            url_text = '正在比对'  # 显示的文本
+            return format_html(u'<a href="{}" target="_blank">{}</a>'.format(url, url_text))
     comparison_status.allow_tags = True
     comparison_status.short_description = '比对状态'
 

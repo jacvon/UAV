@@ -1,0 +1,67 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_static %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static "admin/css/dashboard.css" %}" />
+{% endblock %}
+
+{% block coltype %}colMS{% endblock %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+{% block title %}
+    比对结果｜后台管理系统
+{% endblock %}
+{% block branding %}
+    <h1 id="site-name"><a href="{% url 'admin:index' %}">无人机项目管理系统</a></h1>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a>结果展示</a>
+</div>
+{% endblock %}
+
+{% block content %}
+    {% if singleCompareImages%}
+        <h1>请查看预处理结果</h1>
+        {% for singleCompareImage in singleCompareImages %}
+        <table><tr>
+            <td>
+                <h1>原始图片</h1>
+                <img width="500px" height="500px" src="{{ singleCompareImage.icon_originPanoUrl }}" alt="{{ singleCompareImage.singleImageName }}" border=0></td>
+            <td>
+                <h1>原始局部</h1>
+                <img width="500px" height="500px" src="{{ singleCompareImage.icon_originPartUrl }}" alt="{{ singleCompareImage.singleImageName }}" border=0></td>
+             <td>
+                <h1>比对结果</h1>
+                <img width="500px" height="500px" src="{{ singleCompareImage.icon_originResultUrl }}" alt="{{ singleCompareImage.singleImageName }}" border=0></td>
+        </tr></table>
+        <form action="{% url 'offlineTask:comparisonConfirm' userId=singleCompareImage.userId singleComparisonImageId=singleCompareImage.singleImageCompareId %}" method="post" enctype="multipart/form-data" >
+            {% csrf_token %}
+            <input type="submit" value="上一张" name="predict_pre">
+            <input type="submit" value="下一张" name="predict_next">
+        </form>
+        {% endfor %}
+    {% else %}
+        {% for singleComparehint in singleComparehints %}
+            {% if singleComparehint.isNext is None or singleComparehint.isNext %}
+                {% if singleComparehint.userStatus == 'd'%}
+                    <h1>已完成当前预处理任务,点击查看上一张</h1>
+                {% else %}
+                    <h1>预处理任务正在进行中...</h1>
+                {% endif %}
+                <form action="{% url 'offlineTask:comparisonConfirm' userId=singleCompareImage.userId singleComparisonImageId=singleCompareImage.singleImageCompareId %}" method="post" enctype="multipart/form-data" >
+                    {% csrf_token %}
+                    <input type="submit" value="上一张" name="predict_pre">
+                </form>
+            {% else %}
+                <h1>请点击下一张查看</h1>
+                <form action="{% url 'offlineTask:comparisonConfirm' userId=singleCompareImage.userId singleComparisonImageId=singleCompareImage.singleImageCompareId %}" method="post" enctype="multipart/form-data" >
+                    {% csrf_token %}
+                    <input type="submit" value="下一张" name="predict_next">
+                </form>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endblock %}
+
