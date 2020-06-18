@@ -2,7 +2,7 @@
 import os
 import sys
 import django
-django.setup()
+#django.setup()
 
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ModelToSQL.settings")

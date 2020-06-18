@@ -15,17 +15,22 @@ Including another URLconf
 """
 from django.conf.urls import url, include
 from django.conf.urls.static import static
-from django.contrib import admin
+#from django.contrib import admin
 import ModelToSQL.views
 from ModelToSQL import settings, views
+import xadmin
+from xadmin.plugins import xversion
+xadmin.autodiscover()
+xversion.register_models()
 
 urlpatterns = [
     url(r'^$', ModelToSQL.views.home),
-    url(r'^admin/', admin.site.urls),
-    url(r'^admin/offlineTask/', include(('offlineTask.urls',"offlineTask"), namespace='offlineTask')),
+    url(r'^xadmin/', xadmin.site.urls),
+    url(r'^xadmin/offlineTask/', include(('offlineTask.urls',"offlineTask"), namespace='offlineTask')),
+    url(r'^admin/', include(('offlineTask.urls',"offlineTask"), namespace='admin')),
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-admin.site.site_header = '无人机项目管理系统'
-admin.site.site_title = '登录系统后台'
-admin.site.index_title = '进度监控'
+xadmin.site.site_header = '无人机项目管理系统'
+xadmin.site.site_title = '登录系统后台'
+xadmin.site.index_title = '进度监控'

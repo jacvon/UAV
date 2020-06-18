@@ -1,4 +1,4 @@
-{% extends "admin/base_site.html" %}
+{% extends "xadmin/base_site.html" %}
 {% load i18n admin_static %}
 
 {% block extrastyle %}{{ block.super }}
@@ -12,7 +12,7 @@
     预处理结果｜后台管理系统
 {% endblock %}
 {% block branding %}
-    <h1 id="site-name"><a href="{% url 'admin:index' %}">无人机项目管理系统</a></h1>
+    <h1 id="site-name"><a href="{% url 'xadmin:index' %}">无人机项目管理系统</a></h1>
 {% endblock %}
 
 {% block breadcrumbs %}

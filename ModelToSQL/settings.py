@@ -44,6 +44,9 @@ INSTALLED_APPS = [
     'splice',
     'compare',
     'ModelToSQL',
+    'xadmin',
+    'crispy_forms',
+    'reversion',
 ]
 
 MIDDLEWARE = [
