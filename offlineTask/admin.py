@@ -94,7 +94,6 @@ class OfflineTaskAdmin(generic.BOAdmin):
                         mosiac_handle(user.id, queryset)
                         #compare_handle.delay(user.id, pathImage, pathCsv)
                         print("Exitting mosiac_handle Process")
-                queryset.update(splice_status='p',preprocess_status='p',identify_status = 'p')
     image_todo.short_description = "开始处理"
 
 class OfflineMapManageAdmin(admin.ModelAdmin):

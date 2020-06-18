@@ -223,8 +223,8 @@ def comparisonConfirm(request, userId, singleComparisonImageId):
     elif 'predict_pre' in request.POST:
         singleCompareImageIdInt = int(singleComparisonImageId) - 1
         isNext = False
-    context = preprocessHtmlImages(userId, singleCompareImageIdInt, isNext)
-    return render(request, 'preprocessResult.html', context)
+    context = comparisonHtmlImages(userId, singleCompareImageIdInt, isNext)
+    return render(request, 'comparisonResult.html', context)
 
 def spliceConfirm(request,userId,singleSpliceImageId):
     print(userId)
