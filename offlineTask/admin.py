@@ -26,7 +26,9 @@ class OfflineTaskAdmin(generic.BOAdmin):
         if self.splice_status == 'u':
             return '未拼接'
         elif self.splice_status == 'd':
-            return '已完成'
+            url = '/admin/offlineTask/spliceResult/%s/' % (self.id)  # 跳转的超链接
+            url_text = '已完成'  # 显示的文本
+            return format_html(u'<a href="{}" target="_blank">{}</a>'.format(url, url_text))
         elif self.splice_status == 'p':
             url = '/admin/offlineTask/spliceResult/%s/' % (self.id)  # 跳转的超链接
             url_text = '正在拼接'  # 显示的文本

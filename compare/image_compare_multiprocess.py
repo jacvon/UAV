@@ -8,7 +8,7 @@ import csv
 from scipy import interpolate
 import compare.image_similarity_model as ism
 import compare.image_compare as icp
-from offlineTask.models import SingleImageCompareInfo
+from offlineTask.models import SingleImageCompareInfo, OfflineTask
 
 
 class single_compare_process(Process):
@@ -308,6 +308,13 @@ def saveSingleCompare(userOverdate, userTitleId, imageComOriginPanoPath, imageCo
     singleImageCompare.imageComOriginResultPath = imageComOriginResultPath
     singleImageCompare.save()
 
+    users = OfflineTask.objects.all()
+
+    if int(progress) == 1:
+        for user in users:
+            if user.overDate == userOverdate:
+                user.comparison_status = 'd'
+                user.save()
 
 class output_process(Process):
     def __init__(self, userOverdate, userTitleId, name, compImg_num, pos_regionQ, compare_regionQ, output_path, suffix=".jpg"):
@@ -349,6 +356,7 @@ class output_process(Process):
             imageComOriginResultPath = self.output_path + temp_name + "-CompRegion" + self.suffix
             cv2.imencode('.jpg', origImgRegion)[1].tofile(imageComOriginPartPath)
             cv2.imencode('.jpg', compImgRegion)[1].tofile(imageComOriginResultPath)
+            print(i+1, float(self.compImg_num))
             saveSingleCompare(self.userOverdate, self.userTitleId, imageComOriginPanoPath,
                               imageComOriginPartPath, imageComOriginResultPath,
                               (i+1)/float(self.compImg_num))

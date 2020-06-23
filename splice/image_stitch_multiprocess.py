@@ -7,7 +7,7 @@ import numpy as np
 import csv
 import time
 
-from offlineTask.models import SingleImageSpliceInfo
+from offlineTask.models import SingleImageSpliceInfo, OfflineTask
 
 
 def saveSingleSplice(progress, userOverDate, userTitleId, imageSplicePath, gpsCsvPath):
@@ -21,6 +21,13 @@ def saveSingleSplice(progress, userOverDate, userTitleId, imageSplicePath, gpsCs
     singleImageSplice.imageSplicePath = imageSplicePath
     singleImageSplice.gpsCsvPath = gpsCsvPath
     singleImageSplice.save()
+
+    users = OfflineTask.objects.all()
+    if int(progress) == 1:
+        for user in users:
+            if user.overDate == userOverDate:
+                user.splice_status = 'd'
+                user.save()
 
 
 class load_process(Process):

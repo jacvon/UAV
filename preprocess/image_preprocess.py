@@ -6,7 +6,7 @@ from numba import jit
 import os
 import pyexiv2
 import preprocess.image_dehaze as idh
-from offlineTask.models import SingleImagePreprocessInfo
+from offlineTask.models import SingleImagePreprocessInfo, OfflineTask
 
 
 def saveSinglePreprocess(progress, userOverDate, userTitleId, imagePreprocessPath):
@@ -20,6 +20,13 @@ def saveSinglePreprocess(progress, userOverDate, userTitleId, imagePreprocessPat
     singleImagePreprocess.is_preprocess = True
     singleImagePreprocess.is_show = False
     singleImagePreprocess.save()
+
+    users = OfflineTask.objects.all()
+    if int(progress) == 1:
+        for user in users:
+            if user.overDate == userOverDate:
+                user.preprocess_status = 'd'
+                user.save()
 
 def getImgList(path, suffix=".jpg", reverse=False, sort_by_time=False):
     assert os.path.isdir(path), "can't find image file path."
@@ -437,6 +444,6 @@ def preprocess_handle(load_path, save_path, userOverdate, userTitleId, suffix=".
         #cv2.imwrite(save_path + img_name, loaded_img)
         cv2.imencode('.jpg', loaded_img)[1].tofile(save_path + img_name)
         copy_img_exif(img_path, save_path + img_name)
-        saveSinglePreprocess(index+1 / float(len(img_paths)), userOverdate, userTitleId, save_path + img_name)
+        saveSinglePreprocess((index+1) / float(len(img_paths)), userOverdate, userTitleId, save_path + img_name)
         print("preprocess image:", img_name)
     print("End images preprocess.")

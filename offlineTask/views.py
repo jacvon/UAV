@@ -38,9 +38,7 @@ def spliceHtmlImages(resultId):
                         "singleImageName": singleImageSpliceInfo.titleId,
                         "icon_spliceUrl": "/static/upload/" + singleImageSpliceInfo.imageSplicePath,
                     }
-                    if singleImageSpliceInfo.progress == 1:
-                        user.preprocess_status = 'd'
-                        user.save()
+
                     singleImageSpliceInfo.is_show = True
                     singleImageSpliceInfo.save()
                     break
@@ -73,9 +71,7 @@ def preprocessHtmlImages(resultId, singlePreprocessImageId, isNext):
                         "icon_preprocessUrl": "/static/upload/" + singleImagePreprocess.imagePreprocessPath,
                         "icon_originUrl": "/static/upload/" + singleImagePreprocess.imageOriginPath,
                     }
-                    if singleImagePreprocess.progress == 1:
-                        user.preprocess_status = 'd'
-                        user.save()
+
                     singleImagePreprocess.is_show = True
                     singleImagePreprocess.save()
                     break
@@ -118,9 +114,7 @@ def comparisonHtmlImages(resultId, singleCompareImageId, isNext):
                         "icon_originPanoUrl": "/static/upload/" + singleImageCompareInfo.imageComOriginPanoPath,
                         "icon_originResultUrl": "/static/upload/" + singleImageCompareInfo.imageComOriginResultPath,
                     }
-                    if singleImageCompareInfo.progress == 1:
-                        user.comparison_status = 'd'
-                        user.save()
+
                     singleImageCompareInfo.is_show = True
                     singleImageCompareInfo.save()
                     break
@@ -157,9 +151,7 @@ def identifyHtmlImages(resultId):
                         "icon_preprocessUrl": "/static/upload/" + singleImageIdentify.imagePreprocessPath,
                         "icon_identifyUrl": "/static/upload/" + singleImageIdentify.imageIdentifyPath,
                         }
-                    if singleImageIdentify.progress == 1:
-                        user.identify_status = 'd'
-                        user.save()
+
                     singleImageIdentify.is_show = True
                     singleImageIdentify.save()
                     break

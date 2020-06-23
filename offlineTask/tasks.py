@@ -29,14 +29,14 @@ def mosiac_handle(userId, queryset):
                 or (user.isSplice and user.isSplicePre):
                 for preprocessSet in preprocessSets:
                     if preprocessSet.id == user.preprocessSet_id:
-                       preprocess_handle(originPath, originPath.replace('origin','preprocess'),
+                        queryset.update(preprocess_status='p')
+                        preprocess_handle(originPath, originPath.replace('origin','preprocess'),
                                          user.overDate, user.title_id, ".JPG",
                                          preprocessSet.is_brightness, preprocessSet.is_dehaze, preprocessSet.is_gamma,
                                          preprocessSet.is_clahe)
-                       queryset.update(preprocess_status='p')
-                       compareInputPath = originPath.replace('origin','preprocess')
-                       identifyInputPath = originPath.replace('origin','preprocess')
-                       spliceInputPath = originPath.replace('origin','preprocess')
+                        compareInputPath = originPath.replace('origin','preprocess')
+                        identifyInputPath = originPath.replace('origin','preprocess')
+                        spliceInputPath = originPath.replace('origin','preprocess')
 
             if user.isIdentify:
                 queryset.update(identify_status='p')
