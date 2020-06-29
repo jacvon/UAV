@@ -27,8 +27,9 @@
         {% for singleSpliceImage in singleSpliceImages %}
             {% if singleSpliceImage.icon_spliceUrl%}
                 <table><tr>
-                <td>
-                    <img width="1000px" height="800px" src="{{ singleSpliceImage.icon_spliceUrl }}" alt="{{ singleSpliceImage.singleImageName }}" border=0></td>
+                    <a href="{{ singleSpliceImage.icon_spliceUrl }}">
+                        <img width="1000px" height="800px" src="{{ singleSpliceImage.icon_spliceUrl }}" alt="{{ singleSpliceImage.singleImageName }}" border=0>
+                    </a>
                 </tr></table>
             {% else %}
                 <h1>正在进行离线识别任务，请稍后...</h1>
