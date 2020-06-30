@@ -250,7 +250,7 @@ def splice_handle(originPath, savePath, userOverdate, userTitleId,is_each_save=T
     load_path = originPath
     merge_save_path = savePath
     suffix = ".JPG"
-    is_each_save = is_each_save  # 保存每一步拼接过程的中间结果
+    is_each_save = False  # 保存每一步拼接过程的中间结果
 
     if not os.path.exists(savePath):
         os.makedirs(savePath)
