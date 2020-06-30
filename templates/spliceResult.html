@@ -26,17 +26,23 @@
         <h1>请查看拼接结果</h1>
         {% for singleSpliceImage in singleSpliceImages %}
             {% if singleSpliceImage.icon_spliceUrl%}
-                <table><tr>
-                    <a href="{{ singleSpliceImage.icon_spliceUrl }}">
-                        <img width="1000px" height="800px" src="{{ singleSpliceImage.icon_spliceUrl }}" alt="{{ singleSpliceImage.singleImageName }}" border=0>
-                    </a>
-                </tr></table>
+                <table>
+                    <tr>
+                        <a href="{{ singleSpliceImage.icon_spliceUrl }}">
+                            <img width="1000px" height="800px" src="{{ singleSpliceImage.icon_spliceUrl }}" alt="{{ singleSpliceImage.singleImageName }}" border=0>
+                        </a>
+                        <form action="{% url 'offlineTask:spliceConfirm' userId=singleSpliceImage.userId singleSpliceImageId=singleSpliceImage.singleImageSpliceId %}" method="post" enctype="multipart/form-data" >
+                            {% csrf_token %}
+                            <input type="submit" value="查看高清图片" name="splice_detail">
+                        </form>
+                    </tr>
+                </table>
             {% else %}
-                <h1>正在进行离线识别任务，请稍后...</h1>
+                <h1>正在进行离线拼接任务，请稍后...</h1>
             {% endif %}
         {% endfor %}
     {% else %}
-        <h1>正在进行离线识别任务，请稍后...</h1>
+        <h1>正在进行离线拼接任务，请稍后...</h1>
     {% endif %}
 {% endblock %}
 

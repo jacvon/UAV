@@ -10,6 +10,38 @@ import time
 from offlineTask.models import SingleImageSpliceInfo, OfflineTask
 
 
+def save_sliced_image(img, slice_size, save_path):
+    H, W = img.shape[0:2]
+    h, w = slice_size
+
+    # 保存缩略图
+    if H / W >= h / w:
+        tx, ty = h * W // H, h
+    else:
+        tx, ty = w, w * H // W
+    thumbnail = cv2.resize(img, (tx*5, ty*5), interpolation=cv2.INTER_AREA)
+    #cv2.imwrite(save_path + "thumbnail.jpg", thumbnail, [cv2.IMWRITE_JPEG_QUALITY, 100])
+    cv2.imencode('.jpg', thumbnail)[1].tofile(save_path + "thumbnail.jpg")
+    # 保存切片图
+    rows = H // h if H % h == 0 else H // h + 1
+    cols = W // w if W % w == 0 else W // w + 1
+
+    for i in range(rows):
+        for j in range(cols):
+            image_slice = np.zeros((h, w, 3), np.uint8)
+            if i == rows - 1:
+                if j == cols - 1:
+                    image_slice[0:H - i * h, 0:W - j * w] = img[i * h:H, j * w:W]
+                else:
+                    image_slice[0:H - i * h, :] = img[i * h:H, j * w:(j + 1) * w]
+            else:
+                if j == cols - 1:
+                    image_slice[:, 0:W - j * w] = img[i * h:(i + 1) * h, j * w:W]
+                else:
+                    image_slice = img[i * h:(i + 1) * h, j * w:(j + 1) * w]
+            #cv2.imwrite(save_path + str(i) + "-" + str(j) + ".jpg", image_slice, [cv2.IMWRITE_JPEG_QUALITY, 100])
+            cv2.imencode('.jpg', image_slice)[1].tofile(save_path + str(i) + "-" + str(j) + ".jpg")
+
 def saveSingleSplice(progress, userOverDate, userTitleId, imageSplicePath, gpsCsvPath):
     singleImageSplice = SingleImageSpliceInfo()
 
@@ -28,7 +60,6 @@ def saveSingleSplice(progress, userOverDate, userTitleId, imageSplicePath, gpsCs
             if user.overDate == userOverDate:
                 user.splice_status = 'd'
                 user.save()
-
 
 class load_process(Process):
     def __init__(self, name, numQ, loadedQ, num_evt, load_path, suffix=".jpg"):
@@ -55,7 +86,6 @@ class load_process(Process):
             self.loadedQ.put((loaded_img, img_name, gps_info))
             print("loaded image: " + img_names[index])
         print("Exitting " + self.name + " Process")
-
 
 class transform_process(Process):
     def __init__(self, name, numQ, loadedQ, transformedQ, num_evt):
@@ -117,7 +147,6 @@ class transform_process(Process):
             count += 1
         return None
 
-
 class seam_process(Process):
     def __init__(self,userOverdate, userTitleId, name, numQ, transformedQ, num_evt, save_path, suffix=".jpg", is_each_save=False):
         Process.__init__(self)
@@ -155,7 +184,9 @@ class seam_process(Process):
         merged_img = cv2.warpPerspective(merged_img, transArr, (w, h), flags=cv2.INTER_NEAREST)
         '''
         #cv2.imwrite(self.save_path + "merged_img" + self.suffix, merged_img)  # 保存拼接图像
-        cv2.imencode('.jpg', merged_img)[1].tofile(self.save_path + "merged_img" + self.suffix)
+        #cv2.imencode('.jpg', merged_img)[1].tofile(self.save_path + "merged_img" + self.suffix)
+        slice_size = (400, 640)
+        save_sliced_image(merged_img, slice_size, self.save_path)
         with open(self.save_path + "gps_points.csv", mode='w', newline='') as file_handle:
             file_csv = csv.writer(file_handle)
             header = ['point_x', 'point_y', 'longitude', 'latitude', 'altitude']
@@ -165,7 +196,7 @@ class seam_process(Process):
                     item = [self._gps_points[i][0], self._gps_points[i][1], '{0:.10f}'.format(self._gps_infos[i][0]),
                             '{0:.10f}'.format(self._gps_infos[i][1]), self._gps_infos[i][2]]
                     file_csv.writerow(item)
-        saveSingleSplice(1, self.userOverdate, self.userTitleId, self.save_path + "merged_img" + self.suffix,
+        saveSingleSplice(1, self.userOverdate, self.userTitleId, self.save_path + "thumbnail" + self.suffix,
                          self.save_path + "gps_points.csv")
         print("Exitting " + self.name + " Process")
 
@@ -206,7 +237,6 @@ class seam_process(Process):
                 #saveSingleSplice(count / float(img_num), self.userOverdate, self.userTitleId,
                                  #self.save_path + "merging_img" + str(count) + self.suffix, None)
         return mergeImg
-
 
 def splice_handle(originPath, savePath, userOverdate, userTitleId,is_each_save=True):
     start_time = time.time()

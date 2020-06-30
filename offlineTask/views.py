@@ -1,8 +1,10 @@
 import datetime
 import json
 import os
+import tkinter
 import uuid
 
+from PIL import Image, ImageTk
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -21,6 +23,80 @@ def copy(path,path1):                       #path原文件地址，path1指定�
         fp1.write(i)                        #向新文件中写入数据
     fp.close()
     fp1.close()
+
+class show_sliced_images:
+    def __init__(self, load_path, slice_size):
+        self.load_path = load_path
+        self.slice_size = slice_size
+        self.name_list = [f for f in os.listdir(self.load_path) if f.endswith(".jpg")]
+
+        # 窗口和标题
+        window = tkinter.Tk()
+        window.title("显示切片图片")
+
+        # 打包一个白色画布到窗口
+        self.canvas = tkinter.Canvas(window, width=self.slice_size[1] * 2, height=self.slice_size[0] * 2, bg="black")
+        self.canvas.focus_set()  # 让画布获得焦点,对于键盘
+        self.canvas.pack()
+
+        # 绑定键盘事件，交由processKeyboardEvent函数去处理，事件对象会作为参数传递给该函数
+        self.canvas.bind(sequence="<Key>", func=self.processKeyboardEvent)
+
+        # 初始化 self.img_tk（list_size=4）
+        img_open = Image.open(self.load_path + "0-0.jpg")
+        self.img_tk = [ImageTk.PhotoImage(img_open) for i in range(4)]
+
+        # 初始化时，显示默认图片
+        self.current_pos = (0, 0)
+        self.redraw(self.current_pos)
+
+        # 消息循环
+        window.mainloop()
+
+    def redraw(self, input_pos):
+        img_left_up = str(input_pos[0]) + "-" + str(input_pos[1]) + ".jpg"
+        img_right_down = str(input_pos[0] + 1) + "-" + str(input_pos[1] + 1) + ".jpg"
+
+        # 当且仅当左上和右下切片图像存在时才进行重绘
+        if (img_left_up in self.name_list) and (img_right_down in self.name_list):
+            img_left_down = str(input_pos[0] + 1) + "-" + str(input_pos[1]) + ".jpg"
+            img_right_up = str(input_pos[0]) + "-" + str(input_pos[1] + 1) + ".jpg"
+
+            # 将相邻的四张切片图像显示在画布（注意画布上锚点位置是各切片图的中心）
+            img_open = Image.open(self.load_path + img_left_up)
+            self.img_tk[0] = ImageTk.PhotoImage(img_open)
+            self.canvas.create_image(self.slice_size[1] // 2, self.slice_size[0] // 2, image=self.img_tk[0])
+
+            img_open = Image.open(self.load_path + img_left_down)
+            self.img_tk[1] = ImageTk.PhotoImage(img_open)
+            self.canvas.create_image(self.slice_size[1] // 2, 3 * self.slice_size[0] // 2, image=self.img_tk[1])
+
+            img_open = Image.open(self.load_path + img_right_up)
+            self.img_tk[2] = ImageTk.PhotoImage(img_open)
+            self.canvas.create_image(3 * self.slice_size[1] // 2, self.slice_size[0] // 2, image=self.img_tk[2])
+
+            img_open = Image.open(self.load_path + img_right_down)
+            self.img_tk[3] = ImageTk.PhotoImage(img_open)
+            self.canvas.create_image(3 * self.slice_size[1] // 2, 3 * self.slice_size[0] // 2, image=self.img_tk[3])
+
+            self.current_pos = input_pos
+
+    def processKeyboardEvent(self, ke):
+        input_pos = self.current_pos
+
+        if ke.keysym == "Down":
+            input_pos = (self.current_pos[0] + 1, self.current_pos[1])
+        elif ke.keysym == "Up":
+            input_pos = (self.current_pos[0] - 1, self.current_pos[1])
+        elif ke.keysym == "Left":
+            input_pos = (self.current_pos[0], self.current_pos[1] - 1)
+        elif ke.keysym == "Right":
+            input_pos = (self.current_pos[0], self.current_pos[1] + 1)
+        else:
+            pass
+
+        if input_pos != self.current_pos:
+            self.redraw(input_pos)
 
 def spliceHtmlImages(resultId):
     users = OfflineTask.objects.all()
@@ -219,9 +295,15 @@ def comparisonConfirm(request, userId, singleComparisonImageId):
     return render(request, 'comparisonResult.html', context)
 
 def spliceConfirm(request,userId,singleSpliceImageId):
-    print(userId)
-    print(singleSpliceImageId)
-    return None
+    if 'splice_detail' in request.POST:
+        singleSpliceImages = SingleImageSpliceInfo.objects.all()
+        for singleSpliceImage in singleSpliceImages:
+            if singleSpliceImage.id == int(singleSpliceImageId):
+                save_path, file = os.path.split(singleSpliceImage.imageSplicePath)
+                slice_size = (400, 640)
+                show_sliced_images(save_path+'/', slice_size)
+    context = spliceHtmlImages(userId)
+    return render(request, 'spliceResult.html', context)
 
 def identifyResult(request,resultId):
     print(resultId)

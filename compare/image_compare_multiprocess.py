@@ -5,6 +5,8 @@ from multiprocessing import Process, Queue
 import os
 import time
 import csv
+
+from numba import jit
 from scipy import interpolate
 import compare.image_similarity_model as ism
 import compare.image_compare as icp
@@ -309,12 +311,12 @@ def saveSingleCompare(userOverdate, userTitleId, imageComOriginPanoPath, imageCo
     singleImageCompare.save()
 
     users = OfflineTask.objects.all()
-
     if int(progress) == 1:
         for user in users:
             if user.overDate == userOverdate:
                 user.comparison_status = 'd'
                 user.save()
+
 
 class output_process(Process):
     def __init__(self, userOverdate, userTitleId, name, compImg_num, pos_regionQ, compare_regionQ, output_path, suffix=".jpg"):
@@ -356,13 +358,49 @@ class output_process(Process):
             imageComOriginResultPath = self.output_path + temp_name + "-CompRegion" + self.suffix
             cv2.imencode('.jpg', origImgRegion)[1].tofile(imageComOriginPartPath)
             cv2.imencode('.jpg', compImgRegion)[1].tofile(imageComOriginResultPath)
-            print(i+1, float(self.compImg_num))
             saveSingleCompare(self.userOverdate, self.userTitleId, imageComOriginPanoPath,
                               imageComOriginPartPath, imageComOriginResultPath,
                               (i+1)/float(self.compImg_num))
             print("output image: " + compImg_name)
         print("Exitting " + self.name + " Process")
 
+def load_sliced_image(load_path, suffix=".jpg"):
+    print(load_path)
+    assert os.path.isdir(load_path), "can't find sliced image file path."
+    all_file_names = os.listdir(load_path)
+    name_list = [f for f in all_file_names if f.endswith(suffix)]
+    name_list = sorted(name_list, reverse=False)
+
+    (num_str, _) = os.path.splitext(name_list[-2])  # 倒数第二个切片文件名字能代表切片组的行列数量
+    num = num_str.split("-")
+    rows, cols = int(num[0]) + 1, int(num[1]) + 1
+
+    #slice = cv2.imread(load_path + "0-0.jpg")
+    slice = cv2.imdecode(np.fromfile(load_path +"0-0.jpg", dtype=np.uint8), 1)
+    h, w = slice.shape[0:2]
+    image = np.zeros((h * rows, w * cols, 3), np.uint8)
+    for i in range(rows):
+        for j in range(cols):
+            slice_name = str(i) + "-" + str(j) + ".jpg"
+            #slice = cv2.imread(load_path + slice_name)
+            slice = cv2.imdecode(np.fromfile(load_path + slice_name, dtype=np.uint8), 1)
+            image[i * h:(i + 1) * h, j * w:(j + 1) * w] = slice
+
+    # 求图像右侧和下侧非全黑边边界
+    @jit(nopython=True)
+    def calc_bound(gray):
+        bottom, right = gray.shape[0:2]
+        for col in range(gray.shape[1] - 1, 0, -1):
+            if gray[:, col].any():
+                right = col
+                break
+        for row in range(gray.shape[0] - 1, 0, -1):
+            if gray[row, :].any():
+                bottom = row
+                break
+        return right, bottom
+    right, bottom = calc_bound(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+    return image[0:bottom + 1, 0:right + 1]
 
 def compare_handle(originPath, savePath, historyPath, historyGpsPath, userOverdate, userTitleId):
     start_time = time.time()
@@ -373,7 +411,9 @@ def compare_handle(originPath, savePath, historyPath, historyGpsPath, userOverda
     suffix = ".JPG"
 
     #origImg = cv2.imread(historyPath)
-    origImg = cv2.imdecode(np.fromfile(historyPath, dtype=np.uint8), 1)
+    #origImg = cv2.imdecode(np.fromfile(historyPath, dtype=np.uint8), 1)
+    path, file = os.path.split(historyPath)
+    origImg = load_sliced_image(path+'/', suffix=".jpg")
     csv_file = historyGpsPath
 
     if not os.path.exists(savePath):
