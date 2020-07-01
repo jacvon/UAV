@@ -29,7 +29,7 @@
                 <table>
                     <tr>
                         <a href="{{ singleSpliceImage.icon_spliceUrl }}">
-                            <img width="650px"src="{{ singleSpliceImage.icon_spliceUrl }}" alt="{{ singleSpliceImage.singleImageName }}" border=0>
+                            <img width="650px" src="{{ singleSpliceImage.icon_spliceUrl }}" alt="{{ singleSpliceImage.singleImageName }}" border=0>
                         </a>
                         <form action="{% url 'offlineTask:spliceConfirm' userId=singleSpliceImage.userId singleSpliceImageId=singleSpliceImage.singleImageSpliceId %}" method="post" enctype="multipart/form-data" >
                             {% csrf_token %}
