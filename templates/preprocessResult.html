@@ -28,10 +28,10 @@
         <table><tr>
             <td>
                 <h1>原图</h1>
-                <img width="500px" height="500px" src="{{ singlePreprocessImage.icon_originUrl }}" alt="{{ singlePreprocessImage.singleImageName }}" border=0></td>
+                <img width="600px" src="{{ singlePreprocessImage.icon_originUrl }}" alt="{{ singlePreprocessImage.singleImageName }}" border=0></td>
             <td>
                 <h1>预处理结果</h1>
-                <img width="500px" height="500px" src="{{ singlePreprocessImage.icon_preprocessUrl }}" alt="{{ singlePreprocessImage.singleImageName }}" border=0></td>
+                <img width="600px" src="{{ singlePreprocessImage.icon_preprocessUrl }}" alt="{{ singlePreprocessImage.singleImageName }}" border=0></td>
         </tr></table>
         <form action="{% url 'offlineTask:preprocessConfirm' userId=singlePreprocessImage.userId singlePreprocessImageId=singlePreprocessImage.singleImagePreprocessId %}" method="post" enctype="multipart/form-data" >
             {% csrf_token %}
