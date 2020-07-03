@@ -3,6 +3,8 @@ import json
 import os
 import tkinter
 import uuid
+import numpy as np
+import cv2
 
 from PIL import Image, ImageTk
 from django.contrib.auth.decorators import login_required
@@ -28,75 +30,81 @@ class show_sliced_images:
     def __init__(self, load_path, slice_size):
         self.load_path = load_path
         self.slice_size = slice_size
-        self.name_list = [f for f in os.listdir(self.load_path) if f.endswith(".jpg")]
+        self.img_tk = None
+        self.slice_name_set = set([f for f in os.listdir(self.load_path) if f.endswith(".jpg")])
 
         # 窗口和标题
         window = tkinter.Tk()
-        window.title("显示切片图片")
+        window.title("查看高清图片")
 
-        # 打包一个白色画布到窗口
+        # 打包一个黑色画布到窗口
         self.canvas = tkinter.Canvas(window, width=self.slice_size[1] * 2, height=self.slice_size[0] * 2, bg="black")
         self.canvas.focus_set()  # 让画布获得焦点,对于键盘
         self.canvas.pack()
 
         # 绑定键盘事件，交由processKeyboardEvent函数去处理，事件对象会作为参数传递给该函数
         self.canvas.bind(sequence="<Key>", func=self.processKeyboardEvent)
+        self.canvas.bind(sequence="<MouseWheel>", func=self.processMouseWheelEvent)
 
-        # 初始化 self.img_tk（list_size=4）
-        img_open = Image.open(self.load_path + "0-0.jpg")
-        self.img_tk = [ImageTk.PhotoImage(img_open) for i in range(4)]
-
-        # 初始化时，显示默认图片
+        # 初始化时，显示左上角切片
+        self.row_col_nums = 5
         self.current_pos = (0, 0)
-        self.redraw(self.current_pos)
+        self.redraw(self.current_pos, self.row_col_nums)
 
         # 消息循环
         window.mainloop()
 
-    def redraw(self, input_pos):
-        img_left_up = str(input_pos[0]) + "-" + str(input_pos[1]) + ".jpg"
-        img_right_down = str(input_pos[0] + 1) + "-" + str(input_pos[1] + 1) + ".jpg"
+    def redraw(self, input_pos, row_col_nums):
+        img = np.zeros((row_col_nums * self.slice_size[0], row_col_nums * self.slice_size[1], 3), np.uint8)
+        for i in range(row_col_nums):
+            for j in range(row_col_nums):
+                slice_name = str(input_pos[0] + i) + "-" + str(input_pos[1] + j) + ".jpg"
+                if slice_name in self.slice_name_set:
+                    #slice_img = cv2.imread(self.load_path + slice_name)
+                    slice_img = cv2.imdecode(np.fromfile(self.load_path + slice_name, dtype=np.uint8), 1)
+                    img[i * self.slice_size[0]:(i + 1) * self.slice_size[0], j * self.slice_size[1]:(j + 1) * self.slice_size[1]] = slice_img
+        if row_col_nums > 2:
+            img = cv2.resize(img, (2 * self.slice_size[1], 2 * self.slice_size[0]), interpolation=cv2.INTER_AREA)
+        pil_img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        self.img_tk = ImageTk.PhotoImage(pil_img)
+        self.canvas.create_image(self.slice_size[1], self.slice_size[0], image=self.img_tk)
 
-        # 当且仅当左上和右下切片图像存在时才进行重绘
-        if (img_left_up in self.name_list) and (img_right_down in self.name_list):
-            img_left_down = str(input_pos[0] + 1) + "-" + str(input_pos[1]) + ".jpg"
-            img_right_up = str(input_pos[0]) + "-" + str(input_pos[1] + 1) + ".jpg"
-
-            # 将相邻的四张切片图像显示在画布（注意画布上锚点位置是各切片图的中心）
-            img_open = Image.open(self.load_path + img_left_up)
-            self.img_tk[0] = ImageTk.PhotoImage(img_open)
-            self.canvas.create_image(self.slice_size[1] // 2, self.slice_size[0] // 2, image=self.img_tk[0])
-
-            img_open = Image.open(self.load_path + img_left_down)
-            self.img_tk[1] = ImageTk.PhotoImage(img_open)
-            self.canvas.create_image(self.slice_size[1] // 2, 3 * self.slice_size[0] // 2, image=self.img_tk[1])
-
-            img_open = Image.open(self.load_path + img_right_up)
-            self.img_tk[2] = ImageTk.PhotoImage(img_open)
-            self.canvas.create_image(3 * self.slice_size[1] // 2, self.slice_size[0] // 2, image=self.img_tk[2])
-
-            img_open = Image.open(self.load_path + img_right_down)
-            self.img_tk[3] = ImageTk.PhotoImage(img_open)
-            self.canvas.create_image(3 * self.slice_size[1] // 2, 3 * self.slice_size[0] // 2, image=self.img_tk[3])
-
-            self.current_pos = input_pos
-
-    def processKeyboardEvent(self, ke):
-        input_pos = self.current_pos
-
-        if ke.keysym == "Down":
-            input_pos = (self.current_pos[0] + 1, self.current_pos[1])
-        elif ke.keysym == "Up":
-            input_pos = (self.current_pos[0] - 1, self.current_pos[1])
-        elif ke.keysym == "Left":
-            input_pos = (self.current_pos[0], self.current_pos[1] - 1)
-        elif ke.keysym == "Right":
-            input_pos = (self.current_pos[0], self.current_pos[1] + 1)
+    def processKeyboardEvent(self, event):
+        new_pos = self.current_pos
+        if event.keysym == "Down":
+            new_pos = (self.current_pos[0] + 1, self.current_pos[1])
+        elif event.keysym == "Up":
+            new_pos = (self.current_pos[0] - 1, self.current_pos[1])
+        elif event.keysym == "Left":
+            new_pos = (self.current_pos[0], self.current_pos[1] - 1)
+        elif event.keysym == "Right":
+            new_pos = (self.current_pos[0], self.current_pos[1] + 1)
         else:
             pass
 
-        if input_pos != self.current_pos:
-            self.redraw(input_pos)
+        if new_pos != self.current_pos:
+            img0 = str(new_pos[0]) + "-" + str(new_pos[1]) + ".jpg"
+            if img0 in self.slice_name_set:
+                self.current_pos = new_pos
+                self.redraw(self.current_pos, self.row_col_nums)
+
+    def processMouseWheelEvent(self, event):
+        new_row_col_nums = self.row_col_nums
+
+        if event.delta > 0:
+            # 滚轮往上滚动，放大
+            if new_row_col_nums > 2:
+                new_row_col_nums -= 1
+        elif event.delta < 0:
+            # 滚轮往下滚动，缩小
+            if new_row_col_nums < 9:
+                new_row_col_nums += 1
+        else:
+            pass
+
+        if new_row_col_nums != self.row_col_nums:
+            self.row_col_nums = new_row_col_nums
+            self.redraw(self.current_pos, self.row_col_nums)
 
 def spliceHtmlImages(resultId):
     users = OfflineTask.objects.all()
