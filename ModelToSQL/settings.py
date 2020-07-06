@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'splice',
     'compare',
     'ModelToSQL',
+    'onlineTask.apps.MyAppConfig',
 ]
 
 MIDDLEWARE = [

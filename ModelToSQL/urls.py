@@ -23,6 +23,7 @@ urlpatterns = [
     url(r'^$', ModelToSQL.views.home),
     url(r'^admin/', admin.site.urls),
     url(r'^admin/offlineTask/', include(('offlineTask.urls',"offlineTask"), namespace='offlineTask')),
+    url(r'^admin/onlineTask/', include(('onlineTask.urls',"onlineTask"), namespace='onlineTask')),
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
