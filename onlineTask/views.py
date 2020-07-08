@@ -13,8 +13,9 @@ from django.shortcuts import render
 from django.utils import six
 from django.views.decorators.csrf import csrf_exempt
 
+from onlineTask.models import OnlineTask, OnlineImageIdentifyInfo
 from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR, WEB_HOST_MEDIA_URL
-from offlineTask.models import OfflineTask,  SingleImageIdentifyInfo
+from offlineTask.models import OfflineTask, SingleImageIdentifyInfo, SingleImagePreprocessInfo
 
 def identifyHtmlImages(resultId):
     users = OfflineTask.objects.all()
@@ -41,6 +42,48 @@ def identifyHtmlImages(resultId):
     singleIdentifyImage_list = list(six.itervalues(singleIdentifyImage_dict))
     context = dict(
         singleIdentifyImages = singleIdentifyImage_list,
+    )
+    return context
+
+def preprocessHtmlImages(resultId, singlePreprocessImageId, isNext):
+    users = OnlineTask.objects.all()
+
+    onlineImageIdentifyInfos = OnlineImageIdentifyInfo.objects.all()
+    singlePreprocessImage_dict = {}
+    singlePreprocesshint_dict = {}
+    isAllShown = True
+
+    for user in users:
+        if user.id == int(resultId):
+            for onlineImageIdentifyInfo in onlineImageIdentifyInfos:
+                if onlineImageIdentifyInfo.overDate == user.overDate and \
+                        ((singlePreprocessImageId != None and onlineImageIdentifyInfo.id == int(singlePreprocessImageId))
+                                or singlePreprocessImageId is None):
+                    isAllShown = False
+                    singlePreprocessImage_dict[onlineImageIdentifyInfo.id] = {
+                        "userId": user.id,
+                        "singleImagePreprocessId": onlineImageIdentifyInfo.id,
+                        "singleImageName": onlineImageIdentifyInfo.title,
+                        "icon_preprocessUrl": "/static/upload/" + onlineImageIdentifyInfo.imagePreprocessPath,
+                        "icon_originUrl": "/static/upload/" + onlineImageIdentifyInfo.imageOriginPath,
+                    }
+
+                    onlineImageIdentifyInfo.is_show = True
+                    onlineImageIdentifyInfo.save()
+                    break
+            if  isAllShown:
+                singlePreprocesshint_dict[user.id] = {
+                    "isNext": isNext,
+                    "singleImagePreprocessId": singlePreprocessImageId,
+                    "userId": int(resultId),
+                    "userStatus": user.preprocess_status
+                }
+            break
+    singlePreprocessImage_list = list(six.itervalues(singlePreprocessImage_dict))
+    singlePreprocesshint_list = list(six.itervalues(singlePreprocesshint_dict))
+    context = dict(
+        singlePreprocessImages=singlePreprocessImage_list,
+        singlePreprocesshints= singlePreprocesshint_list,
     )
     return context
 
@@ -75,7 +118,23 @@ def identifyConfirm(request, userId,singleImageIdentifyId):
     context = identifyHtmlImages(userId)
     return render(request, 'identifyResult.html', context)
 
+def preprocessConfirm(request, userId, singlePreprocessImageId):
+    isNext = None
+    singlePreprocessImageIdInt = 0
+    if 'predict_next' in request.POST:
+        singlePreprocessImageIdInt = int(singlePreprocessImageId) + 1
+        isNext = True
+    elif 'predict_pre' in request.POST:
+        singlePreprocessImageIdInt = int(singlePreprocessImageId) - 1
+        isNext = False
+    context = preprocessHtmlImages(userId, singlePreprocessImageIdInt, isNext)
+    return render(request, 'preprocessOnlineResult.html', context)
+
 def identifyResult(request,resultId):
     print(resultId)
     context = identifyHtmlImages(resultId)
     return render(request, 'identifyResult.html', context)
+
+def preprocessResult(request,resultId):
+    context = preprocessHtmlImages(resultId,None,None)
+    return render(request, 'preprocessOnlineResult.html', context)
