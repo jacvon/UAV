@@ -34,7 +34,7 @@ PREPROCESS_STATUS_CHOICES = (
 class OnlineImageIdentifyInfo(models.Model):
     title = models.CharField('', max_length=1000,default='')
     is_confirm = models.BooleanField(blank=True, null=True)
-    is_identify = models.BooleanField(default=False)
+    is_selected = models.BooleanField(default=False)
     is_show = models.BooleanField(default=False)
     progress = models.BooleanField(default=True)
     imageOriginPath = models.CharField('', max_length=1000,default='')

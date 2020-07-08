@@ -129,8 +129,8 @@ class online_identify_process(Process):
         print("Starting " + self.name + " Process")
 
         while True:
+            self.queryset.update(identify_status='p')
             enhanced_img, progress, onlineIdentifyPreId,img_path = self.enhancedQ.get()
-
             if not os.path.exists(self.save_path):
                 os.makedirs(self.save_path)
 
