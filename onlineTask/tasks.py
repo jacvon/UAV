@@ -15,6 +15,14 @@ from splice.apps import seam_process, transform_process
 import splice.image_stitch as ist
 import preprocess.image_preprocess as ipp
 
+def saveOnlineIdentify(userOverdate, userTitle, imageIdentifyPath, onlineIdentifyPreId):
+    onlineImageIdentifyInfos = OnlineImageIdentifyInfo.objects.all()
+    for onlineImageIdentifyInfo in onlineImageIdentifyInfos:
+        if onlineImageIdentifyInfo.id == onlineIdentifyPreId:
+            onlineImageIdentifyInfo.imageIdentifyPath = imageIdentifyPath
+            onlineImageIdentifyInfo.save()
+            break
+
 def saveOnlinePreprocess(userOverDate, userTitle, imagePreprocessPath, onlineIdentifyPreId):
     onlineImageIdentifyInfos = OnlineImageIdentifyInfo.objects.all()
     for onlineImageIdentifyInfo in onlineImageIdentifyInfos:
@@ -58,9 +66,7 @@ class receive_process(Process):
         progress = True
         index = 0
         while index<5:
-            print(img_paths[index])
             onlineIdentifyPreId = copyImageToFile(self.userOverdate, self.userTitle, img_paths[index], img_names[index], progress, self.save_path)
-            print(onlineIdentifyPreId)
             self.loadedQ.put((self.save_path + img_names[index], progress, onlineIdentifyPreId))
             index += 1
             time.sleep(3)
@@ -86,30 +92,53 @@ class online_enhance_process(Process):
 
         while True:
             img_path, progress, onlineIdentifyPreId = self.loadedQ.get()
-            print(img_path)
             enhanced_img = cv2.imdecode(np.fromfile(img_path, dtype=np.uint8), 1)
             if self.isIdentifyPre:
-                print(1111111111111111111111)
                 self.queryset.update(preprocess_status='p')
                 if self.is_gamma:
                     enhanced_img = ipp.gamma_trans(enhanced_img, gamma=0.5)
                 if self.is_clahe:
                     enhanced_img = ipp.hist_equal_CLAHE(enhanced_img, clipLimit=1.0, tileGridSize=(9, 9))
-            print(222222222222222222222222)
             img_name = os.path.basename(img_path)
             #gps_info = get_gps(img_path)
-            self.enhancedQ.put(enhanced_img, progress)
-            print(333333333333333333333)
+            self.enhancedQ.put((enhanced_img, progress, onlineIdentifyPreId,img_path))
             if not os.path.exists(self.save_path):
                 os.makedirs(self.save_path)
             #cv2.imwrite(save_path + img_name, loaded_img)
-            print(4444444444444444444444)
             cv2.imencode('.jpg', enhanced_img)[1].tofile(self.save_path + img_name)
             #cv2.imwrite(self.save_path + img_name, enhanced_img, [cv2.IMWRITE_JPEG_QUALITY, 100])
             #copy_img_exif(img_path, self.save_path + img_name)
-            print(55555555555555555555555555)
-            print(onlineIdentifyPreId)
             saveOnlinePreprocess(self.userOverdate, self.userTitle, self.save_path + img_name, onlineIdentifyPreId)
+            print("enhanced image: " + img_name)
+            if progress is False:
+                self.queryset.update(preprocess_status='d')
+                break
+        print("Exitting " + self.name + " Process")
+
+class online_identify_process(Process):
+    def __init__(self, name, queryset, userOverdate, userTitle, enhancedQ, save_path):
+        Process.__init__(self)
+        self.name = name
+        self.queryset = queryset
+        self.userOverdate = userOverdate
+        self.userTitle = userTitle
+        self.enhancedQ = enhancedQ
+        self.save_path = save_path
+
+    def run(self):
+        print("Starting " + self.name + " Process")
+
+        while True:
+            enhanced_img, progress, onlineIdentifyPreId,img_path = self.enhancedQ.get()
+
+            if not os.path.exists(self.save_path):
+                os.makedirs(self.save_path)
+
+            img_name = os.path.basename(img_path)
+
+            shutil.copy(img_path, self.save_path + img_name)
+
+            saveOnlineIdentify(self.userOverdate, self.userTitle, self.save_path + img_name, onlineIdentifyPreId)
             print("enhanced image: " + img_name)
             if progress is False:
                 self.queryset.update(preprocess_status='d')
@@ -135,5 +164,7 @@ def onlinemosiac_handle(userId, queryset):
                                          user.isIdentifyPre, user.preprocessSet.is_gamma, user.preprocessSet.is_clahe)
             process_ep.start()
             processes.append(process_ep)
-
+            process_id = online_identify_process("Image_Identify", queryset, user.overDate, user.title.mapNickName, enhancedQ, origin_folder.replace('origin', 'identify'))
+            process_id.start()
+            processes.append(process_id)
         print("Exitting onlinemosiac_handle Process")
