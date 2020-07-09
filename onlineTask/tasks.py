@@ -7,6 +7,7 @@ from multiprocessing import Process, Event, Queue
 import cv2
 from ModelToSQL.settings import BASE_DIR
 from compare.image_compare_multiprocess import compare_handle
+from image_compare import get_gps
 from onlineTask.models import OnlineTask, OnlineImageIdentifyInfo
 from splice.image_stitch_multiprocess import splice_handle
 from preprocess.image_preprocess import preprocess_handle
@@ -109,7 +110,7 @@ class online_enhance_process(Process):
             #cv2.imwrite(save_path + img_name, loaded_img)
             cv2.imencode('.jpg', enhanced_img)[1].tofile(self.save_path + img_name)
             #cv2.imwrite(self.save_path + img_name, enhanced_img, [cv2.IMWRITE_JPEG_QUALITY, 100])
-            #copy_img_exif(img_path, self.save_path + img_name)
+            ipp.copy_img_exif(img_path, self.save_path + img_name)
             saveOnlinePreprocess(self.userOverdate, self.userTitle, self.save_path + img_name, onlineIdentifyPreId)
             print("enhanced image: " + img_name)
             if progress is False:
