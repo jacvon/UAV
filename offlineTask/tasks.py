@@ -11,6 +11,9 @@ from preprocess.apps import load_process, enhance_process
 from splice.apps import seam_process, transform_process
 
 #@app.task(name='offlineTask.tasks.mosiac_handle')
+from identify.yolo_video import identify_handle
+
+
 def mosiac_handle(userId, queryset):
     print("start Mosiac Process")
     compareInputPath = ''
@@ -40,7 +43,7 @@ def mosiac_handle(userId, queryset):
 
             if user.isIdentify:
                 queryset.update(identify_status='p')
-                print('处理识别')
+                identify_handle(identifyInputPath, identifyInputPath.replace('preprocess','identify'), user.overDate, user.title_id)
             if user.isSplice:
                 queryset.update(splice_status='p')
                 splice_handle(spliceInputPath,spliceInputPath.replace('preprocess','splice'),

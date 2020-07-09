@@ -14,10 +14,12 @@ class OfflineTaskAdmin(generic.BOAdmin):
         if self.identify_status == 'u':
             return '未识别'
         elif self.identify_status == 'd':
-            return '已确认'
+            url = '/admin/offlineTask/identifyResult/%s/' % (self.id)  # 跳转的超链接
+            url_text = '已完成'  # 显示的文本
+            return format_html(u'<a href="{}" target="_blank">{}</a>'.format(url, url_text))
         elif self.identify_status == 'p':
             url = '/admin/offlineTask/identifyResult/%s/' % (self.id) # 跳转的超链接
-            url_text = '请确认识别结果'  # 显示的文本
+            url_text = '请确认'  # 显示的文本
             return format_html(u'<a href="{}" target="_blank">{}</a>'.format(url, url_text))
     identify_status.allow_tags = True
     identify_status.short_description = '识别状态'

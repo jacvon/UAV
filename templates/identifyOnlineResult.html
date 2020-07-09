@@ -30,7 +30,7 @@
                 <h1>识别结果</h1>
                 <img width="600px" src="{{ singleIdentifyImage.icon_identifyUrl }}" alt="{{ singlePreprocessImage.singleImageName }}" border=0></td>
         </tr></table>
-        <form action="{% url 'offlineTask:identifyConfirm' userId=singleIdentifyImage.userId singleImageIdentifyId=singleIdentifyImage.singleImageIdentifyId %}" method="post" enctype="multipart/form-data" >
+        <form action="{% url 'onlineTask:identifyConfirm' userId=singleIdentifyImage.userId singleImageIdentifyId=singleIdentifyImage.singleImageIdentifyId %}" method="post" enctype="multipart/form-data" >
             {% csrf_token %}
             <input type="submit" value="上一张" name="predict_pre">
             <input type="submit" value="下一张" name="predict_next">
@@ -43,14 +43,14 @@
             {% if singleIdentifyhint.isNext is None or singleIdentifyhint.isNext %}
                 {% if singleIdentifyhint.userStatus == 'd'%}
                     <h1>已完成识别任务,点击查看上一张</h1>
-                    <form action="{% url 'offlineTask:identifyConfirm' userId=singleIdentifyhint.userId singleImageIdentifyId=singleIdentifyhint.singleImageIdentifyId%}" method="post" enctype="multipart/form-data" >
+                    <form action="{% url 'onlineTask:identifyConfirm' userId=singleIdentifyhint.userId singleImageIdentifyId=singleIdentifyhint.singleImageIdentifyId%}" method="post" enctype="multipart/form-data" >
                         {% csrf_token %}
                         <input type="submit" value="上一张" name="predict_pre">
                     </form>
                 {% else %}
                     <h1>识别任务正在进行中...</h1>
                     {% if singlePreprocesshint.isNext %}
-                        <form action="{% url 'offlineTask:identifyConfirm' userId=singleIdentifyhint.userId singleImageIdentifyId=singleIdentifyhint.singleImageIdentifyId%}" method="post" enctype="multipart/form-data" >
+                        <form action="{% url 'onlineTask:identifyConfirm' userId=singleIdentifyhint.userId singleImageIdentifyId=singleIdentifyhint.singleImageIdentifyId%}" method="post" enctype="multipart/form-data" >
                             {% csrf_token %}
                             <input type="submit" value="上一张" name="predict_pre">
                         </form>
@@ -58,7 +58,7 @@
                 {% endif %}
             {% else %}
                 <h1>请点击下一张查看</h1>
-                <form action="{% url 'offlineTask:identifyConfirm' userId=singleIdentifyhint.userId singleImageIdentifyId=singleIdentifyhint.singleImageIdentifyId%}" method="post" enctype="multipart/form-data" >
+                <form action="{% url 'onlineTask:identifyConfirm' userId=singleIdentifyhint.userId singleImageIdentifyId=singleIdentifyhint.singleImageIdentifyId%}" method="post" enctype="multipart/form-data" >
                     {% csrf_token %}
                     <input type="submit" value="下一张" name="predict_next">
                 </form>

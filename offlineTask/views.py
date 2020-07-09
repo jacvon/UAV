@@ -1,6 +1,7 @@
 import datetime
 import json
 import os
+import shutil
 import tkinter
 import uuid
 import numpy as np
@@ -218,52 +219,65 @@ def comparisonHtmlImages(resultId, singleCompareImageId, isNext):
     )
     return context
 
-def identifyHtmlImages(resultId):
+def identifyHtmlImages(resultId, singleIdentifyImageId, isNext):
     users = OfflineTask.objects.all()
 
-    singleImageIdentifys = SingleImageIdentifyInfo.objects.all()
+    singleImageIdentifyInfos = SingleImageIdentifyInfo.objects.all()
     singleIdentifyImage_dict = {}
+    singleIdentifyhint_dict = {}
+    isAllShown = True
 
     for user in users:
         if user.id == int(resultId):
-            for singleImageIdentify in singleImageIdentifys:
-                if singleImageIdentify.overDate == user.overDate:
-                    singleIdentifyImage_dict[singleImageIdentify.id] = {
+            for singleImageIdentifyInfo in singleImageIdentifyInfos:
+                if singleImageIdentifyInfo.overDate == user.overDate and \
+                        ((singleIdentifyImageId != None and singleImageIdentifyInfo.id == int(singleIdentifyImageId))
+                         or singleIdentifyImageId is None):
+                    isAllShown = False
+                    singleIdentifyImage_dict[singleImageIdentifyInfo.id] = {
                         "userId": user.id,
-                        "singleImageIdentifyId": singleImageIdentify.id,
-                        "singleImageName": singleImageIdentify.title,
-                        "icon_preprocessUrl": "/static/upload/" + singleImageIdentify.imagePreprocessPath,
-                        "icon_identifyUrl": "/static/upload/" + singleImageIdentify.imageIdentifyPath,
-                        }
+                        "singleImageIdentifyId": singleImageIdentifyInfo.id,
+                        "singleImageName": singleImageIdentifyInfo.titleId,
+                        "icon_preprocessUrl": "/static/upload/" + singleImageIdentifyInfo.imagePreprocessPath,
+                        "icon_identifyUrl": "/static/upload/" + singleImageIdentifyInfo.imageIdentifyPath,
+                    }
 
-                    singleImageIdentify.is_show = True
-                    singleImageIdentify.save()
+                    singleImageIdentifyInfo.is_show = True
+                    singleImageIdentifyInfo.save()
                     break
+            if isAllShown:
+                singleIdentifyhint_dict[user.id] = {
+                    "isNext": isNext,
+                    "singleImageIdentifyId": singleIdentifyImageId,
+                    "userId": int(resultId),
+                    "userStatus": user.identify_status
+                }
             break
     singleIdentifyImage_list = list(six.itervalues(singleIdentifyImage_dict))
+    singleIdentifyhint_list = list(six.itervalues(singleIdentifyhint_dict))
     context = dict(
-        singleIdentifyImages = singleIdentifyImage_list,
+        singleIdentifyImages=singleIdentifyImage_list,
+        singleIdentifyhints=singleIdentifyhint_list,
     )
     return context
 
 def identifyConfirm(request, userId,singleImageIdentifyId):
+    isNext = None
+    singleImageIdentifyIdInt = 0
     if 'predict_confirm' in request.POST:
         singleImageIdentifys = SingleImageIdentifyInfo.objects.all()
         for singleImageIdentify in singleImageIdentifys:
             if singleImageIdentify.id == int(singleImageIdentifyId):
                 singleImageIdentify.is_confirm = True
                 #overdate = datetime.datetime.now().strftime("%Y/%m/icons")
-                #存储相对路径
-                singleImageIdentify.imageIdentifyResultPath = '%s/%s/%s/%s' % (singleImageIdentify.title, singleImageIdentify.overDate,'identifyResult',singleImageIdentify.imagePreprocessPath.split('/')[-1])
+                singleImageIdentify.imageIdentifyResultPath = singleImageIdentify.imageIdentifyPath.replace('identify','identifyResult')
                 #用绝对路径创建确认结果的文件夹
-                identifyResult_folder= '%s/%s/%s/%s/%s' % (BASE_DIR, 'static/upload',singleImageIdentify.title, singleImageIdentify.overDate,'identifyResult')
-                if not os.path.exists(identifyResult_folder):
-                    os.makedirs(identifyResult_folder)
-                #需要绝对路径来执行copy操作
-                predict_path = '%s/%s/%s' % (BASE_DIR, 'static/upload',singleImageIdentify.imagePreprocessPath)
-                result_path = '%s/%s/%s' % (BASE_DIR, 'static/upload',singleImageIdentify.imageIdentifyResultPath)
-                copy(predict_path, result_path)
+                identify_path =os.path.dirname(singleImageIdentify.imageIdentifyResultPath)
+                if not os.path.exists(identify_path):
+                    os.makedirs(identify_path)
+                shutil.copy(singleImageIdentify.imageIdentifyPath, singleImageIdentify.imageIdentifyResultPath)
                 singleImageIdentify.save()
+                singleImageIdentifyIdInt = int(singleImageIdentifyId) + 1
                 break
         pass
     elif 'predict_cancel' in request.POST:
@@ -271,11 +285,22 @@ def identifyConfirm(request, userId,singleImageIdentifyId):
         for singleImageIdentify in singleImageIdentifys:
             if singleImageIdentify.id == int(singleImageIdentifyId):
                 singleImageIdentify.is_confirm = False
+                if singleImageIdentify.imageIdentifyResultPath is not None \
+                    and (os.path.exists(singleImageIdentify.imageIdentifyResultPath)):
+                    shutil.rmtree(singleImageIdentify.imageIdentifyResultPath)
+                singleImageIdentify.imageIdentifyResultPath = None
                 singleImageIdentify.save()
+                singleImageIdentifyIdInt = int(singleImageIdentifyId) + 1
                 break
         pass
     #测试提交代码
-    context = identifyHtmlImages(userId)
+    elif 'predict_next' in request.POST:
+        singleImageIdentifyIdInt = int(singleImageIdentifyId) + 1
+        isNext = True
+    elif 'predict_pre' in request.POST:
+        singleImageIdentifyIdInt = int(singleImageIdentifyId) - 1
+        isNext = False
+    context = identifyHtmlImages(userId, singleImageIdentifyIdInt, isNext)
     return render(request, 'identifyResult.html', context)
 
 def preprocessConfirm(request, userId, singlePreprocessImageId):
@@ -315,7 +340,7 @@ def spliceConfirm(request,userId,singleSpliceImageId):
 
 def identifyResult(request,resultId):
     print(resultId)
-    context = identifyHtmlImages(resultId)
+    context = identifyHtmlImages(resultId, None, None)
     return render(request, 'identifyResult.html', context)
 
 def spliceResult(request,resultId):

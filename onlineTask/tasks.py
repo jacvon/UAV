@@ -14,6 +14,8 @@ from offlineTask.models import OfflineTask, OfflinePreprocessSet, SingleImageSpl
 from splice.apps import seam_process, transform_process
 import splice.image_stitch as ist
 import preprocess.image_preprocess as ipp
+from PIL import Image
+from yolo import YOLO, detect_video
 
 def saveOnlineIdentify(userOverdate, userTitle, imageIdentifyPath, onlineIdentifyPreId):
     onlineImageIdentifyInfos = OnlineImageIdentifyInfo.objects.all()
@@ -127,17 +129,19 @@ class online_identify_process(Process):
 
     def run(self):
         print("Starting " + self.name + " Process")
-
+        yolo = YOLO()
         while True:
             self.queryset.update(identify_status='p')
             enhanced_img, progress, onlineIdentifyPreId,img_path = self.enhancedQ.get()
+
             if not os.path.exists(self.save_path):
                 os.makedirs(self.save_path)
 
             img_name = os.path.basename(img_path)
-
-            shutil.copy(img_path, self.save_path + img_name)
-
+            img = Image.open(img_path)
+            r_image = yolo.detect_image(img)
+            rawimg = np.array(r_image)
+            cv2.imencode('.jpg', rawimg)[1].tofile(self.save_path + img_name)
             saveOnlineIdentify(self.userOverdate, self.userTitle, self.save_path + img_name, onlineIdentifyPreId)
             print("enhanced image: " + img_name)
             if progress is False:
@@ -155,7 +159,7 @@ def onlinemosiac_handle(userId, queryset):
     users = OnlineTask.objects.all()
     for user in users:
         if user.id == userId:
-            origin_folder = '%s/%s/%s/%s/%s/' % (BASE_DIR.replace('\\', '/'), 'static/upload', user.title.mapNickName, user.overDate, 'origin')
+            origin_folder = '%s/%s/%s/%s/%s/' % (BASE_DIR.replace('\\', '/'), 'static/upload/onlineTask', user.title.mapNickName, user.overDate, 'origin')
             processes = []
             process_re = receive_process("receive_Load", user.overDate, user.title.mapNickName, loadedQ, load_path, origin_folder, suffix)
             process_re.start()

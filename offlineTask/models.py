@@ -113,7 +113,7 @@ class SingleImagePreprocessInfo(models.Model):
 
 class SingleImageIdentifyInfo(models.Model):
     titleId = models.IntegerField(default=None)
-    is_confirm = models.BooleanField()
+    is_confirm = models.BooleanField(blank=True, null=True)
     is_identify = models.BooleanField(default=False)
     is_show = models.BooleanField(default=False)
     progress = models.FloatField('', max_length=10, default='0')
