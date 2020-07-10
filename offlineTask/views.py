@@ -278,6 +278,7 @@ def identifyConfirm(request, userId,singleImageIdentifyId):
                 shutil.copy(singleImageIdentify.imageIdentifyPath, singleImageIdentify.imageIdentifyResultPath)
                 singleImageIdentify.save()
                 singleImageIdentifyIdInt = int(singleImageIdentifyId) + 1
+                isNext = True
                 break
         pass
     elif 'predict_cancel' in request.POST:
@@ -291,6 +292,7 @@ def identifyConfirm(request, userId,singleImageIdentifyId):
                 singleImageIdentify.imageIdentifyResultPath = None
                 singleImageIdentify.save()
                 singleImageIdentifyIdInt = int(singleImageIdentifyId) + 1
+                isNext = True
                 break
         pass
     #测试提交代码
