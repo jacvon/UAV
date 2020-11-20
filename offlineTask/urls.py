@@ -11,7 +11,7 @@ urlpatterns = [
     url(r'^preprocessConfirm/(?P<userId>\w+)/(?P<singlePreprocessImageId>\w+)/', views.preprocessConfirm, name='preprocessConfirm'),
     url(r'^spliceConfirm/(?P<userId>\w+)/(?P<singleSpliceImageId>\w+)/', views.spliceConfirm, name='spliceConfirm'),
     url(r'^comparisonConfirm/(?P<userId>\w+)/(?P<singleComparisonImageId>\w+)/', views.comparisonConfirm, name='comparisonConfirm'),
-    url(r'upload_temp_image/', views.upload_temp_image, name="upload_temp_images")
-
+    url(r'^upload_temp_image/', views.upload_temp_image, name="upload_temp_images"),
+    url(r'^download/(?P<userId>\w+)',views.download, name='download'),
 ]
 

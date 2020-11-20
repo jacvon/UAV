@@ -1,6 +1,10 @@
 # coding=utf-8
 import os
+from audioop import reverse
+
 from django.contrib import admin
+from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404
 from django.utils.html import format_html
 from offlineTask.tasks import mosiac_handle
 from common import generic
@@ -66,10 +70,17 @@ class OfflineTaskAdmin(generic.BOAdmin):
     comparison_status.allow_tags = True
     comparison_status.short_description = '比对状态'
 
+    def down_paper(self):
+        url = '/admin/offlineTask/download/%s/' % (self.id)
+        url_text = "下载"
+        return format_html(u'<a href="{}" target="_blank">{}</a>'.format(url,url_text))
+    down_paper.short_description = "数据导出"
+    down_paper.allow_tags = True
+
     list_per_page = 10
     actions_on_bottom = True
     actions_on_top = False
-    list_display = ['begin', 'title', identify_status, splice_status, preprocess_status, comparison_status]
+    list_display = ['begin', 'title', identify_status, splice_status, preprocess_status, comparison_status, down_paper]
     list_display_links = ['title']
     list_filter = ['title']
 

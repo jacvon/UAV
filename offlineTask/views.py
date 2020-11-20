@@ -9,10 +9,12 @@ import cv2
 
 from PIL import Image, ImageTk
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import HttpResponse, FileResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils import six
 from django.views.decorators.csrf import csrf_exempt
+from docx.shared import Mm, Inches, Pt
+from docxtpl import DocxTemplate, InlineImage
 
 from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR, WEB_HOST_MEDIA_URL
 from offlineTask.models import OfflineTask, SingleImagePreprocessInfo, SingleImageIdentifyInfo, SingleImageSpliceInfo, SingleImageCompareInfo
@@ -385,3 +387,26 @@ def handle_uploaded_file(file):
             destination.write(chunk)
     # 返回图片的URL
     return os.path.join(WEB_HOST_MEDIA_URL, file.name)
+
+def read_file(file_name, size):
+    with open(file_name,mode='rb') as fp:
+        while True:
+            c = fp.read(size)
+            if c:
+                yield c
+            else:
+                break
+
+def download(request, userId):
+    #file_path = 'D:\202006115wjk\topic'
+    filename = 'test.docx'
+    filepath = 'D:\\202006115wjk\\topic\\download\\'
+    template_path = os.getcwd() + '\\train.docx'
+    template = DocxTemplate(template_path)
+    context1 = {'chengyun':'world company','myimage':InlineImage(template,'D:\\202006115wjk\\topic\\download\\ceshi.jpg',width=Mm(30), height=Mm(60)),}
+    template.render(context1)
+    template.save(os.path.join(filepath, filename))
+    response = StreamingHttpResponse(read_file(os.path.join(filepath, filename),512))
+    response['Content-Type']='application/msword'
+    response['Content-Disposition'] = 'attachment;filename="{}"'.format(filename)
+    return response
