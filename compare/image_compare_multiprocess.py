@@ -239,6 +239,11 @@ class search_process(Process):
                 predict_img = self.origImg
             img_list, contours = icp.getOverlayImgRegions(icp.getShrinkImg(self.origImg, scale=1.0), icp.getShrinkImg(compImg, scale=1.0),
                                                           compImg_name, icp.getShrinkImg(predict_img, scale=1.0), predict_transArr)
+            if img_list is None or contours is None:
+                self.compImg_regionQ.put((None, compImg_name))
+                self.search_regionQ.put((None, None, compImg_name))
+                self.pos_regionQ.put((None, None, compImg_name))
+                continue
             ImgPosition, origImgRegion, compImgRegion = tuple(img_list)
             self.compImg_regionQ.put((compImgRegion, compImg_name))
             self.search_regionQ.put((origImgRegion, compImgRegion, compImg_name))
@@ -259,8 +264,11 @@ class getboxs_process(Process):
         print("Starting " + self.name + " Process")
         for i in range(self.compImg_num):
             compImgRegion, compImg_name = self.compImg_regionQ.get()
-            selected_boxs = icp.getSelectedBoxs(compImgRegion)
-            self.box_listQ.put(selected_boxs)
+            if compImgRegion is not None:
+                selected_boxs = icp.getSelectedBoxs(compImgRegion)
+                self.box_listQ.put(selected_boxs)
+            else:
+                self.box_listQ.put(None)
             print("get boxs from image: " + compImg_name)
         print("Exitting " + self.name + " Process")
 
@@ -282,32 +290,44 @@ class compare_process(Process):
             origImgRegion, compImgRegion, compImg_name = self.search_regionQ.get()
             selected_boxs = self.box_listQ.get()
             # possible_boxs, other_box = ImageCompare_Hist(origImgRegion, compImgRegion, selected_boxs)
-            possible_boxs, other_box = icp.ImageCompare_Deep(origImgRegion, compImgRegion, selected_boxs, similarity)
-            for (x, y, w, h) in possible_boxs:
-                cv2.rectangle(origImgRegion, (x, y), (x + w, y + h), (0, 128, 255), 5)
-                cv2.rectangle(compImgRegion, (x, y), (x + w, y + h), (0, 128, 255), 5)
-            '''
-            for (x, y, w, h) in other_box:
-                cv2.rectangle(origImgRegion, (x, y), (x + w, y + h), (0, 255, 0), 5)
-                cv2.rectangle(compImgRegion, (x, y), (x + w, y + h), (0, 255, 0), 5)
-            '''
-            self.compare_regionQ.put((origImgRegion, compImgRegion))
+            if (origImgRegion is not None) \
+                    and (compImgRegion is not None) \
+                    and (selected_boxs is not None):
+                possible_boxs, other_box = icp.ImageCompare_Deep(origImgRegion, compImgRegion, selected_boxs, similarity)
+                for (x, y, w, h) in possible_boxs:
+                    cv2.rectangle(origImgRegion, (x, y), (x + w, y + h), (0, 128, 255), 5)
+                    cv2.rectangle(compImgRegion, (x, y), (x + w, y + h), (0, 128, 255), 5)
+                '''
+                for (x, y, w, h) in other_box:
+                    cv2.rectangle(origImgRegion, (x, y), (x + w, y + h), (0, 255, 0), 5)
+                    cv2.rectangle(compImgRegion, (x, y), (x + w, y + h), (0, 255, 0), 5)
+                '''
+                self.compare_regionQ.put((origImgRegion, compImgRegion))
+            else:
+                self.compare_regionQ.put((None, None))
             print("compare image: " + compImg_name)
         print("Exitting " + self.name + " Process")
 
 
 def saveSingleCompare(userOverdate, userTitleId, imageComOriginPanoPath, imageComOriginPartPath,
-                      imageComOriginResultPath, progress):
+                      imageComOriginResultPath, progress, ImgPosition):
     singleImageCompare = SingleImageCompareInfo()
 
     singleImageCompare.overDate =userOverdate
     singleImageCompare.titleId = userTitleId
     singleImageCompare.is_compare = True
-    singleImageCompare.is_show = False
+    if ImgPosition is None:
+        singleImageCompare.is_show = 2
+        singleImageCompare.imageComOriginPanoPath = None
+        singleImageCompare.imageComOriginPartPath = None
+        singleImageCompare.imageComOriginResultPath = None
+    else:
+        singleImageCompare.is_show = 1
+        singleImageCompare.imageComOriginPanoPath = imageComOriginPanoPath
+        singleImageCompare.imageComOriginPartPath = imageComOriginPartPath
+        singleImageCompare.imageComOriginResultPath = imageComOriginResultPath
     singleImageCompare.progress = progress
-    singleImageCompare.imageComOriginPanoPath = imageComOriginPanoPath
-    singleImageCompare.imageComOriginPartPath = imageComOriginPartPath
-    singleImageCompare.imageComOriginResultPath = imageComOriginResultPath
+
     singleImageCompare.save()
 
     users = OfflineTask.objects.all()
@@ -337,30 +357,34 @@ class output_process(Process):
         imageComOriginResultPath = ''
         for i in range(self.compImg_num):
             ImgPosition, contours, compImg_name = self.pos_regionQ.get()
-            temp_name = os.path.splitext(compImg_name)[0]
+            if (ImgPosition is not None) \
+                    and (contours is not None):
+                temp_name = os.path.splitext(compImg_name)[0]
 
-            cv2.drawContours(ImgPosition, contours, -1, (0, 0, 255), 10)
-            (x, y, w, h) = cv2.boundingRect(icp.findMaxAreaContour(contours))
-            cv2.putText(ImgPosition, "Searched from " + compImg_name, (x + int(w / 4), y + int(h / 2)),
+                cv2.drawContours(ImgPosition, contours, -1, (0, 0, 255), 10)
+                (x, y, w, h) = cv2.boundingRect(icp.findMaxAreaContour(contours))
+                cv2.putText(ImgPosition, "Searched from " + compImg_name, (x + int(w / 4), y + int(h / 2)),
                         cv2.FONT_HERSHEY_COMPLEX, 4, (0, 0, 255), 3)
-            #cv2.imwrite(self.output_path + temp_name + "-Position" + self.suffix, ImgPosition)
-            imageComOriginPanoPath = self.output_path + temp_name + "-Position" + self.suffix
-            cv2.imencode('.jpg', ImgPosition)[1].tofile(imageComOriginPanoPath)
+                #cv2.imwrite(self.output_path + temp_name + "-Position" + self.suffix, ImgPosition)
+                imageComOriginPanoPath = self.output_path + temp_name + "-Position" + self.suffix
+                cv2.imencode('.jpg', ImgPosition)[1].tofile(imageComOriginPanoPath)
+                origImgRegion, compImgRegion = self.compare_regionQ.get()
 
-            origImgRegion, compImgRegion = self.compare_regionQ.get()
-            cv2.putText(origImgRegion, "Oringinal from " + compImg_name, (1, origImgRegion.shape[0] - 10),
+                cv2.putText(origImgRegion, "Oringinal from " + compImg_name, (1, origImgRegion.shape[0] - 10),
                         cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 2)
-            cv2.putText(compImgRegion, "Compared from " + compImg_name, (1, compImgRegion.shape[0] - 10),
+                cv2.putText(compImgRegion, "Compared from " + compImg_name, (1, compImgRegion.shape[0] - 10),
                         cv2.FONT_HERSHEY_COMPLEX, 2, (0, 0, 255), 2)
-            #cv2.imwrite(self.output_path + temp_name + "-OrigRegion" + self.suffix, origImgRegion)
-            #cv2.imwrite(self.output_path + temp_name + "-CompRegion" + self.suffix, compImgRegion)
-            imageComOriginPartPath = self.output_path + temp_name + "-OrigRegion" + self.suffix
-            imageComOriginResultPath = self.output_path + temp_name + "-CompRegion" + self.suffix
-            cv2.imencode('.jpg', origImgRegion)[1].tofile(imageComOriginPartPath)
-            cv2.imencode('.jpg', compImgRegion)[1].tofile(imageComOriginResultPath)
+                #cv2.imwrite(self.output_path + temp_name + "-OrigRegion" + self.suffix, origImgRegion)
+                #cv2.imwrite(self.output_path + temp_name + "-CompRegion" + self.suffix, compImgRegion)
+                imageComOriginPartPath = self.output_path + temp_name + "-OrigRegion" + self.suffix
+                imageComOriginResultPath = self.output_path + temp_name + "-CompRegion" + self.suffix
+                cv2.imencode('.jpg', origImgRegion)[1].tofile(imageComOriginPartPath)
+                cv2.imencode('.jpg', compImgRegion)[1].tofile(imageComOriginResultPath)
+            else:
+                _, _ = self.compare_regionQ.get()
             saveSingleCompare(self.userOverdate, self.userTitleId, imageComOriginPanoPath,
                               imageComOriginPartPath, imageComOriginResultPath,
-                              (i+1)/float(self.compImg_num))
+                              (i+1)/float(self.compImg_num),ImgPosition)
             print("output image: " + compImg_name)
         print("Exitting " + self.name + " Process")
 

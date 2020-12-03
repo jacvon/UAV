@@ -191,7 +191,7 @@ def comparisonHtmlImages(resultId, singleCompareImageId, isNext):
             for singleImageCompareInfo in singleImageCompareInfos:
                 if singleImageCompareInfo.overDate == user.overDate and \
                         ((singleCompareImageId != None and singleImageCompareInfo.id == int(singleCompareImageId))
-                                or singleCompareImageId is None):
+                                or singleCompareImageId is None) and singleImageCompareInfo.is_show != 2:
                     isAllShown = False
                     singleCompareImage_dict[singleImageCompareInfo.id] = {
                         "userId": user.id,
@@ -323,10 +323,16 @@ def comparisonConfirm(request, userId, singleComparisonImageId):
     isNext = None
     singleCompareImageIdInt = 0
     if 'predict_next' in request.POST:
-        singleCompareImageIdInt = int(singleComparisonImageId) + 1
+        if singleComparisonImageId != 'None' and singleComparisonImageId is not None:
+            singleCompareImageIdInt = int(singleComparisonImageId) + 1
+        else:
+            singleCompareImageIdInt = None
         isNext = True
     elif 'predict_pre' in request.POST:
-        singleCompareImageIdInt = int(singleComparisonImageId) - 1
+        if singleComparisonImageId != 'None' and singleComparisonImageId is not None:
+            singleCompareImageIdInt = int(singleComparisonImageId) - 1
+        else:
+            singleCompareImageIdInt = None
         isNext = False
     context = comparisonHtmlImages(userId, singleCompareImageIdInt, isNext)
     return render(request, 'comparisonResult.html', context)

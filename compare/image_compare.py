@@ -72,10 +72,11 @@ def getTransformMatrix(origImg, transImg, transImg_name):
         orig_pts = np.float32([kp_orig[m.trainIdx].pt for m in good_pts]).reshape(-1, 1, 2)
         # 两种算法可选：cv2.LMEDS or cv2.RANSAC
         perArr, mask = cv2.findHomography(trans_pts / shrink_scale, orig_pts / shrink_scale, cv2.RANSAC, 5.0)
+        return [np.array(perArr, dtype=np.float64)]
     else:
-        assert False, "The images {} need {} points at least, but only match {} points." \
-            .format(transImg_name, MIN_MATCH_COUNT, len(good_pts))
-    return [np.array(perArr, dtype=np.float64)]
+        print( "The images {} need {} points at least, but only match {} points." \
+            .format(transImg_name, MIN_MATCH_COUNT, len(good_pts)))
+        return None
 
 
 def getBoundary(img, perArr):
@@ -90,11 +91,12 @@ def getBoundary(img, perArr):
 
 
 def PerArrs_Mutiply(perArrs, iters):
-    assert len(perArrs) >= iters
-    arr = np.eye(3, dtype=np.float64)
-    for i in range(iters):
-        arr = np.dot(arr, perArrs[i])
-    return arr
+    if perArrs is not None:
+        assert len(perArrs) >= iters
+        arr = np.eye(3, dtype=np.float64)
+        for i in range(iters):
+            arr = np.dot(arr, perArrs[i])
+        return arr
 
 
 def getMaxBoundary(imgs, perArrs):
@@ -147,6 +149,9 @@ def calc_bound(mask):
 def getOverlayImgRegions(origImg, compImg, compImg_name, predict_img, predict_transArr):
     PerArrs = getTransformMatrix(predict_img, compImg, compImg_name)  # 获取变换矩阵
 
+    if PerArrs is None:
+        return None,None
+
     min_left_bound, min_top_bound, max_right_bound, max_bottom_bound \
         = getMaxBoundary([origImg, compImg], PerArrs)  # 获取最终拼接图像的最大边界
     new_width, new_height = (max_right_bound - min_left_bound + 1, max_bottom_bound - min_top_bound + 1)  # 计算拼接图像的宽和高
@@ -182,6 +187,8 @@ def getOverlayImgRegions(origImg, compImg, compImg_name, predict_img, predict_tr
     # 把重叠区域映射回待比对图（由于无人机拍摄倾斜度的存在，用拼接图作为参考，重叠区域有一定变形）
     # ***** 若待比对图与拼接图只有部分区域重叠，则非重叠区域存在黑色区域 *****
     PerArrs = getTransformMatrix(compImg, overlay_compImg, compImg_name)
+    if PerArrs is None:
+        return None,None
     perArr = PerArrs_Mutiply(PerArrs, 1)
     h, w = compImg.shape[0:2]
     overlay_origImg = cv2.warpPerspective(overlay_origImg, perArr, (w, h), flags=cv2.cv2.INTER_NEAREST)

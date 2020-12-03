@@ -146,7 +146,7 @@ class SingleImageSpliceInfo(models.Model):
 class SingleImageCompareInfo(models.Model):
     titleId = models.IntegerField(default=None)
     is_compare = models.BooleanField(default=False)
-    is_show = models.BooleanField(default=False)
+    is_show = models.IntegerField(default=0)
     progress = models.FloatField('', max_length=10,default='0')
     imagePreprocessPath = models.CharField('', max_length=1000)
     imageComOriginPartPath = models.CharField('', max_length=1000)

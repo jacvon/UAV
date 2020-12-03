@@ -19,6 +19,7 @@ def mosiac_handle(userId, queryset):
     compareInputPath = ''
     identifyInputPath = ''
     spliceInputPath = ''
+    isPreFlag = False
     users = OfflineTask.objects.all()
     preprocessSets = OfflinePreprocessSet.objects.all()
     for user in users:
@@ -37,24 +38,39 @@ def mosiac_handle(userId, queryset):
                                          user.overDate, user.title_id, ".JPG",
                                          preprocessSet.is_brightness, preprocessSet.is_dehaze, preprocessSet.is_gamma,
                                          preprocessSet.is_clahe)
+                        isPreFlag = True
                         compareInputPath = originPath.replace('origin','preprocess')
                         identifyInputPath = originPath.replace('origin','preprocess')
                         spliceInputPath = originPath.replace('origin','preprocess')
 
             if user.isIdentify:
                 queryset.update(identify_status='p')
-                identify_handle(identifyInputPath, identifyInputPath.replace('preprocess','identify'), user.overDate, user.title_id)
+                if isPreFlag:
+                    identify_handle(identifyInputPath, identifyInputPath.replace('preprocess', 'identify'),
+                                    user.overDate, user.title_id)
+                else:
+                    identify_handle(identifyInputPath, identifyInputPath.replace('origin', 'identify'),
+                                    user.overDate, user.title_id)
             if user.isSplice:
                 queryset.update(splice_status='p')
-                splice_handle(spliceInputPath,spliceInputPath.replace('preprocess','splice'),
-                              user.overDate, user.title_id)
+                if isPreFlag:
+                    splice_handle(spliceInputPath,spliceInputPath.replace('preprocess','splice'),
+                                user.overDate, user.title_id)
+                else:
+                    splice_handle(spliceInputPath, spliceInputPath.replace('origin', 'splice'),
+                                  user.overDate, user.title_id)
             if user.isCompare:
                 queryset.update(comparison_status='p')
                 splices = SingleImageSpliceInfo.objects.all()
                 for splice in splices:
                     if splice.id == user.comparePath_id:
-                        compare_handle(compareInputPath, compareInputPath.replace('preprocess','compare'),
-                                       splice.imageSplicePath, splice.gpsCsvPath,
-                                       user.overDate, user.title_id)
+                        if isPreFlag:
+                            compare_handle(compareInputPath, compareInputPath.replace('preprocess','compare'),
+                                           splice.imageSplicePath, splice.gpsCsvPath,
+                                           user.overDate, user.title_id)
+                        else:
+                            compare_handle(compareInputPath, compareInputPath.replace('origin', 'compare'),
+                                           splice.imageSplicePath, splice.gpsCsvPath,
+                                           user.overDate, user.title_id)
                         break
             break
