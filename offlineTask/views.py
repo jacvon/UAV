@@ -409,8 +409,11 @@ def download(request, userId):
     filepath = 'D:\\202006115wjk\\topic\\download\\'
     template_path = os.getcwd() + '\\train.docx'
     template = DocxTemplate(template_path)
-    context1 = {'chengyun':'world company','myimage':InlineImage(template,'D:\\202006115wjk\\topic\\download\\ceshi.jpg',width=Mm(30), height=Mm(60)),}
-    template.render(context1)
+    try:
+        context1 = {'chengyun':'world company','myimage':InlineImage(template,'D:/202006115wjk/topic/download/ceshi.jpg',width=Mm(80), height=Mm(60)),}
+    except Exception as e:
+        print(e)
+    template.render(context = context1)
     template.save(os.path.join(filepath, filename))
     response = StreamingHttpResponse(read_file(os.path.join(filepath, filename),512))
     response['Content-Type']='application/msword'

@@ -4,6 +4,8 @@ import os
 import shutil
 import tkinter
 import uuid
+import socket
+
 import numpy as np
 import cv2
 
@@ -14,9 +16,21 @@ from django.shortcuts import render
 from django.utils import six
 from django.views.decorators.csrf import csrf_exempt
 
+from image_stitch import get_gps
 from onlineTask.models import OnlineTask, OnlineImageIdentifyInfo
 from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR, WEB_HOST_MEDIA_URL
 from offlineTask.models import OfflineTask, SingleImageIdentifyInfo
+
+def transBack(flyBackImagePath):
+    gps = get_gps(flyBackImagePath)
+    print(gps)
+    transJson = 'long123:' + str(gps[0][0]) + ',lat:' + str(gps[0][1]) + ',alt:' + str(gps[0][2])
+    print(gps,transJson)
+    client = socket.socket()
+    client.connect(('127.0.0.1', 8888))
+    client.send(transJson.encode("utf-8"))
+    data = client.recv(1024)  # 这里是字节1k
+    print("recv:>", data.decode())
 
 def identifyHtmlImages(resultId, singleIdentifyImageId, isNext):
     users = OnlineTask.objects.all()
@@ -141,6 +155,14 @@ def identifyConfirm(request, userId,singleImageIdentifyId):
     elif 'predict_pre' in request.POST:
         singleImageIdentifyIdInt = int(singleImageIdentifyId) - 1
         isNext = False
+    elif 'fly_back' in request.POST:
+        flyBackImagePath = None
+        singleImageIdentifys = OnlineImageIdentifyInfo.objects.all()
+        for singleImageIdentify in singleImageIdentifys:
+            if singleImageIdentify.id == int(singleImageIdentifyId):
+                flyBackImagePath = singleImageIdentify.imageOriginPath
+                break
+        transBack(flyBackImagePath)
     context = identifyHtmlImages(userId, singleImageIdentifyIdInt, isNext)
     return render(request, 'identifyOnlineResult.html', context)
 
