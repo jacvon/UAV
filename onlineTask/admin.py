@@ -40,10 +40,20 @@ class OnlineTaskAdmin(generic.BOAdmin):
     preprocess_status.allow_tags = True
     preprocess_status.short_description = '预处理状态'
 
+    def task_status(self):
+        if self.task_status == 'u':
+            return '未处理'
+        elif self.task_status == 'd':
+            return '已结束'
+        elif self.task_status == 'p':
+            return '正在进行'
+    task_status.allow_tags = True
+    task_status.short_description = '任务状态'
+
     list_per_page = 10
     actions_on_bottom = True
     actions_on_top = False
-    list_display = ['begin', 'title', identify_status, preprocess_status]
+    list_display = ['begin', 'title', identify_status, preprocess_status, task_status]
     list_display_links = ['title']
     list_filter = ['title']
 

@@ -24,14 +24,17 @@ from offlineTask.models import OfflineTask, SingleImageIdentifyInfo
 def transBack(flyBackImagePath):
     gps = get_gps(flyBackImagePath)
     print(gps)
-    transJson = 'long123:' + str(gps[0][0]) + ',lat:' + str(gps[0][1]) + ',alt:' + str(gps[0][2])
+    #transJson = 'long123:' + str(gps[0][0]) + ',lat:' + str(gps[0][1]) + ',alt:' + str(gps[0][2])
+    transJson = {
+                "MessageType": "AssignGPS",
+                "longitude": str(gps[0][0]),
+                "latitude": str(gps[0][1]),
+                "altitude": str(gps[0][2])}
     print(gps,transJson)
     client = socket.socket()
     client.connect(('127.0.0.1', 8888))
-    client.send(transJson.encode("utf-8"))
+    client.send(json.dumps(transJson).encode())
     data = client.recv(1024)  # 这里是字节1k
-    print("recv:>", data.decode())
-
 def identifyHtmlImages(resultId, singleIdentifyImageId, isNext):
     users = OnlineTask.objects.all()
 
@@ -158,6 +161,7 @@ def identifyConfirm(request, userId,singleImageIdentifyId):
     elif 'fly_back' in request.POST:
         flyBackImagePath = None
         singleImageIdentifys = OnlineImageIdentifyInfo.objects.all()
+        singleImageIdentifyIdInt = int(singleImageIdentifyId)
         for singleImageIdentify in singleImageIdentifys:
             if singleImageIdentify.id == int(singleImageIdentifyId):
                 flyBackImagePath = singleImageIdentify.imageOriginPath

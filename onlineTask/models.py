@@ -31,11 +31,17 @@ PREPROCESS_STATUS_CHOICES = (
     ('d', '已完成'),
     ('p', '正在预处理'),
 )
+TASK_STATUS_CHOICES = (
+    ('u', '未开始'),
+    ('d', '已结束'),
+    ('p', '正在进行'),
+)
 class OnlineImageIdentifyInfo(models.Model):
     title = models.CharField('', max_length=1000,default='')
     is_confirm = models.BooleanField(blank=True, null=True)
     is_selected = models.BooleanField(default=False)
     is_show = models.BooleanField(default=False)
+    is_identify = models.BooleanField(default=False)
     progress = models.BooleanField(default=True)
     imageOriginPath = models.CharField('', max_length=1000,default='')
     imagePreprocessPath = models.CharField('', max_length=1000)
@@ -54,12 +60,14 @@ class OnlineTask(generic.BO):
     overDate = models.CharField('', max_length=45)
     isIdentifyPre = models.BooleanField(_("识别是否预处理"),blank=True, null=False, max_length=const.DB_CHAR_CODE_2,default=True)
     preprocess_status = models.CharField(_("预处理状态"), blank=True, null=True, max_length=const.DB_CHAR_CODE_6,choices=PREPROCESS_STATUS_CHOICES, default='u')
+    task_status = models.CharField(_("任务状态"), blank=True, null=True, max_length=const.DB_CHAR_CODE_6,choices=TASK_STATUS_CHOICES, default='u')
     identify_status = models.CharField(_("识别状态"), blank=True, null=True, max_length=const.DB_CHAR_CODE_6,choices=IDENTIFY_STATUS_CHOICES, default='u')
     preprocessSet = models.ForeignKey(OfflinePreprocessSet, verbose_name=u'预处理配置选择', on_delete=models.CASCADE,help_text=u'请选择配置',blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        overDate = datetime.datetime.now().strftime("%Y%m%d/%H%M%S")
-        self.overDate = overDate
+        if self.overDate == None or self.overDate == "":
+            overDate = datetime.datetime.now().strftime("%Y%m%d/%H%M%S")
+            self.overDate = overDate
         super().save(*args, **kwargs)
 
     class Meta:

@@ -12,7 +12,7 @@
     比对结果｜后台管理系统
 {% endblock %}
 {% block branding %}
-    <h1 id="site-name"><a href="{% url 'admin:index' %}">无人机项目管理系统</a></h1>
+    <h1 id="site-name"><a href="{% url 'admin:index' %}">光缆线路无人机巡检数据处理系统</a></h1>
 {% endblock %}
 
 {% block breadcrumbs %}
@@ -28,13 +28,13 @@
         <table><tr>
             <td>
                 <h1>原始图片</h1>
-                <img width="500px" src="{{ singleCompareImage.icon_originPanoUrl }}" alt="{{ singleCompareImage.singleImageName }}" border=0></td>
+                <img height="260px" width="400px" src="{{ singleCompareImage.icon_originPanoUrl }}" alt="{{ singleCompareImage.singleImageName }}" border=0></td>
             <td>
                 <h1>原始局部</h1>
-                <img width="400px" src="{{ singleCompareImage.icon_originPartUrl }}" alt="{{ singleCompareImage.singleImageName }}" border=0></td>
+                <img height="260px" width="400px" src="{{ singleCompareImage.icon_originPartUrl }}" alt="{{ singleCompareImage.singleImageName }}" border=0></td>
              <td>
                 <h1>比对结果</h1>
-                <img width="400px" src="{{ singleCompareImage.icon_originResultUrl }}" alt="{{ singleCompareImage.singleImageName }}" border=0></td>
+                <img height="260px" width="400px" src="{{ singleCompareImage.icon_originResultUrl }}" alt="{{ singleCompareImage.singleImageName }}" border=0></td>
         </tr></table>
         <form action="{% url 'offlineTask:comparisonConfirm' userId=singleCompareImage.userId singleComparisonImageId=singleCompareImage.singleImageCompareId %}" method="post" enctype="multipart/form-data" >
             {% csrf_token %}

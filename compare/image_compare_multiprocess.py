@@ -388,17 +388,30 @@ class output_process(Process):
             print("output image: " + compImg_name)
         print("Exitting " + self.name + " Process")
 
+def find_rows_cols(name_list):
+    rows, cols = 0, 0
+    for name in name_list:
+        if "-" in name:
+            (num_str, _) = os.path.splitext(name)
+            num = num_str.split("-")
+            r, c = int(num[0]) + 1, int(num[1]) + 1
+            if rows < r:
+                rows = r
+            if cols < c:
+                cols = c
+    return rows, cols
+
 def load_sliced_image(load_path, suffix=".jpg"):
     print(load_path)
     assert os.path.isdir(load_path), "can't find sliced image file path."
     all_file_names = os.listdir(load_path)
     name_list = [f for f in all_file_names if f.endswith(suffix)]
-    name_list = sorted(name_list, reverse=False)
+    ##name_list = sorted(name_list, reverse=False)
 
-    (num_str, _) = os.path.splitext(name_list[-2])  # 倒数第二个切片文件名字能代表切片组的行列数量
-    num = num_str.split("-")
-    rows, cols = int(num[0]) + 1, int(num[1]) + 1
-
+    ##(num_str, _) = os.path.splitext(name_list[-2])  # 倒数第二个切片文件名字能代表切片组的行列数量
+    ##num = num_str.split("-")
+    ##rows, cols = int(num[0]) + 1, int(num[1]) + 1
+    rows, cols = find_rows_cols(name_list)
     #slice = cv2.imread(load_path + "0-0.jpg")
     slice = cv2.imdecode(np.fromfile(load_path +"0-0.jpg", dtype=np.uint8), 1)
     h, w = slice.shape[0:2]

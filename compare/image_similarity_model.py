@@ -99,6 +99,7 @@ class ImageSimilarity():
 
     def compare_images(self, img1, img2, boxs):
         generator = self._data_generator(img1, boxs)
+        print(generator,type(generator))
         features1 = self._model.extract_feature(generator)
 
         generator = self._data_generator(img2, boxs)

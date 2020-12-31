@@ -12,7 +12,7 @@
     拼接结果｜后台管理系统
 {% endblock %}
 {% block branding %}
-    <h1 id="site-name"><a href="{% url 'admin:index' %}">无人机项目管理系统</a></h1>
+    <h1 id="site-name"><a href="{% url 'admin:index' %}">光缆线路无人机巡检数据处理系统</a></h1>
 {% endblock %}
 
 {% block breadcrumbs %}
@@ -29,7 +29,7 @@
                 <table>
                     <tr>
                         <a href="{{ singleSpliceImage.icon_spliceUrl }}" target="_blank">
-                            <img width="650px" src="{{ singleSpliceImage.icon_spliceUrl }}" alt="{{ singleSpliceImage.singleImageName }}" border=0>
+                            <img width="1300px" height="500px" src="{{ singleSpliceImage.icon_spliceUrl }}" alt="{{ singleSpliceImage.singleImageName }}" border=0>
                         </a>
                         <form action="{% url 'offlineTask:spliceConfirm' userId=singleSpliceImage.userId singleSpliceImageId=singleSpliceImage.singleImageSpliceId %}" method="post" enctype="multipart/form-data" >
                             {% csrf_token %}

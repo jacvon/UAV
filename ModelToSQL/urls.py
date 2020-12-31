@@ -27,6 +27,6 @@ urlpatterns = [
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-admin.site.site_header = '无人机项目管理系统'
+admin.site.site_header = '光缆线路无人机巡检数据处理系统'
 admin.site.site_title = '登录系统后台'
 admin.site.index_title = '进度监控'

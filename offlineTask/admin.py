@@ -72,15 +72,15 @@ class OfflineTaskAdmin(generic.BOAdmin):
 
     def down_paper(self):
         url = '/admin/offlineTask/download/%s/' % (self.id)
-        url_text = "下载"
+        url_text = "生成"
         return format_html(u'<a href="{}" target="_blank">{}</a>'.format(url,url_text))
-    down_paper.short_description = "数据导出"
+    down_paper.short_description = "巡检报告生成"
     down_paper.allow_tags = True
 
     list_per_page = 10
     actions_on_bottom = True
     actions_on_top = False
-    list_display = ['begin', 'title', identify_status, splice_status, preprocess_status, comparison_status, down_paper]
+    list_display = ['begin', 'title', preprocess_status, identify_status, comparison_status, splice_status, down_paper]
     list_display_links = ['title']
     list_filter = ['title']
 
@@ -95,6 +95,7 @@ class OfflineTaskAdmin(generic.BOAdmin):
     date_hierarchy = 'begin'
 
     def get_queryset(self, request):
+        #return
         return super(OfflineTaskAdmin,self).get_queryset(request).filter(end__gt=datetime.date.today())
 
     def image_todo(self,request,queryset):

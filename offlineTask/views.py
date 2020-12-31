@@ -6,6 +6,7 @@ import tkinter
 import uuid
 import numpy as np
 import cv2
+import jinja2
 
 from PIL import Image, ImageTk
 from django.contrib.auth.decorators import login_required
@@ -17,7 +18,9 @@ from docx.shared import Mm, Inches, Pt
 from docxtpl import DocxTemplate, InlineImage
 
 from ModelToSQL.settings import BASE_DIR, TEMP_IMAGE_DIR, WEB_HOST_MEDIA_URL
-from offlineTask.models import OfflineTask, SingleImagePreprocessInfo, SingleImageIdentifyInfo, SingleImageSpliceInfo, SingleImageCompareInfo
+from image_preprocess import getImgList
+from offlineTask.models import OfflineTask, SingleImagePreprocessInfo, SingleImageIdentifyInfo, SingleImageSpliceInfo, \
+    SingleImageCompareInfo, OfflinePreprocessSet
 
 
 def copy(path,path1):                       #path原文件地址，path1指定地址
@@ -405,15 +408,91 @@ def read_file(file_name, size):
 
 def download(request, userId):
     #file_path = 'D:\202006115wjk\topic'
+    pStatus = ''
+    identifyStatus = ''
+    cStatus = ''
+    spliceStatus = ''
+    overDate = ''
+    beginTime = ''
+    creator = ''
+    #preImgs = []
+    #idImgs = []
+    #comImgs = []
+    #spImgs = []
+    preImgsTemp = []
+    idImgsTemp = []
+    comImgsTemp = []
+    spImgsTemp = []
+
     filename = 'test.docx'
     filepath = 'D:\\202006115wjk\\topic\\download\\'
     template_path = os.getcwd() + '\\train.docx'
     template = DocxTemplate(template_path)
+    users = OfflineTask.objects.all()
+    singleImagePreprocessInfos = SingleImagePreprocessInfo.objects.all()
+    singleImageIdentifyInfos = SingleImageIdentifyInfo.objects.all()
+    singleImageSpliceInfos = SingleImageSpliceInfo.objects.all()
+    singleImageCompareInfos = SingleImageCompareInfo.objects.all()
+
+    for user in users:
+        if user.id == int(userId):
+            overDate = user.overDate
+            beginTime = user.begin
+            creator = user.creator
+            identifyStatus = user.identify_status
+            spliceStatus = user.splice_status
+            pStatus = user.preprocess_status
+            cStatus = user.comparison_status
+            break
+
+    context = {}
     try:
-        context1 = {'chengyun':'world company','myimage':InlineImage(template,'D:/202006115wjk/topic/download/ceshi.jpg',width=Mm(80), height=Mm(60)),}
+        context = {
+                    'beginTime': beginTime,
+                    'creator': creator,
+                    'identifyStatus': identifyStatus,
+                    'spliceStatus': spliceStatus,
+                    'pStatus': pStatus,
+                    'cStatus': cStatus,
+        }
     except Exception as e:
         print(e)
-    template.render(context = context1)
+
+    if pStatus == 'd':
+        for singleImagePreprocessInfo in singleImagePreprocessInfos :
+            if singleImagePreprocessInfo.overDate == overDate \
+                    and singleImagePreprocessInfo.imagePreprocessPath != None\
+                    and singleImagePreprocessInfo.imagePreprocessPath != '':
+                    preImgsTemp.append({'image': InlineImage(template,singleImagePreprocessInfo.imagePreprocessPath,width=Mm(80), height=Mm(60))})
+        context['pre_list']=preImgsTemp
+
+    if identifyStatus == 'd':
+        for singleImageIdentifyInfo in singleImageIdentifyInfos:
+            if singleImageIdentifyInfo.overDate == overDate \
+                    and singleImageIdentifyInfo.imageIdentifyResultPath != None \
+                    and singleImageIdentifyInfo.imageIdentifyResultPath != '':
+                    idImgsTemp.append({'image': InlineImage(template,singleImageIdentifyInfo.imageIdentifyResultPath,width=Mm(80), height=Mm(60))})
+        context['iden_list'] = idImgsTemp
+
+    if cStatus == 'd':
+        for singleImageCompareInfo in singleImageCompareInfos:
+            if singleImageCompareInfo.overDate == overDate \
+                    and singleImageCompareInfo.imageComOriginResultPath != None\
+                    and singleImageCompareInfo.imageComOriginResultPath != '':
+                comImgsTemp.append({'image1': InlineImage(template,singleImageCompareInfo.imageComOriginResultPath,width=Mm(80), height=Mm(60)),
+                                    'image2': InlineImage(template,singleImageCompareInfo.imageComOriginPartPath,width=Mm(80), height=Mm(60))})
+        context['com_list'] = comImgsTemp
+
+    if spliceStatus == 'd':
+        for singleImageSpliceInfo in singleImageSpliceInfos:
+            if singleImageSpliceInfo.overDate == overDate \
+                    and singleImageSpliceInfo.imageSplicePath != None\
+                    and singleImageSpliceInfo.imageSplicePath != '':
+                    spImgsTemp.append({'image': InlineImage(template,singleImageSpliceInfo.imageSplicePath,width=Mm(80), height=Mm(60))})
+        context['splice_list'] = spImgsTemp
+
+    jinja_env = jinja2.Environment(autoescape=True)
+    template.render(context, jinja_env)
     template.save(os.path.join(filepath, filename))
     response = StreamingHttpResponse(read_file(os.path.join(filepath, filename),512))
     response['Content-Type']='application/msword'
